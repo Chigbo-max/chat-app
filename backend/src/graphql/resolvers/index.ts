@@ -5,6 +5,7 @@ import { notificationResolver } from "./notification.resolver";
 import { MessageService } from "../../services/concrete/MessageService";
 import { ReactionService } from "../../services/concrete/ReactionService";
 
+
 const messageService = new MessageService();
 const reactionService = new ReactionService();
 
@@ -21,5 +22,9 @@ export const resolvers:any = {
     ...conversationResolver.Mutation,
     ...messageResolver(messageService, reactionService).Mutation,
     ...notificationResolver.Mutation
-  }
+  },
+
+  User: userResolver.User,
+
+
 };

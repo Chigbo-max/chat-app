@@ -12,7 +12,13 @@ export class ConversationRepository {
   async findById(id: string) {
     return Conversation.findById(id)
       .populate("participants")
-      .populate("lastMessage");
+      .populate({
+        path: "lastMessage",
+        populate: {
+          path: "sender",
+          model: "User"
+        }
+      });
   }
 
   // Cursor pagination for conversations
@@ -31,7 +37,13 @@ export class ConversationRepository {
 
     const conversations = await Conversation.find(query)
       .populate("participants")
-      .populate("lastMessage")
+      .populate({
+        path: "lastMessage",
+        populate: {
+          path: "sender",
+          model: "User"
+        }
+      })
       .sort({ lastMessageAt: -1 })
       .limit(limit + 1);
 

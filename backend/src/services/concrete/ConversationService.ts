@@ -16,8 +16,8 @@ export class ConversationService implements IConversationService {
     return this.repo.findById(id);
   }
 
-  async getUserConversations({ cursor, limit = 20 }: any) {
-    return this.repo.findUserConversations(cursor, limit);
+  async getUserConversations({ userId, cursor, limit = 20 }: any) {
+    return this.repo.findUserConversations(userId, cursor, limit);
   }
 
   async addParticipant(conversationId: string, userId: string) {

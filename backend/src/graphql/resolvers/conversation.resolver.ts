@@ -1,14 +1,26 @@
 import { IResolvers } from "@graphql-tools/utils";
 import { ConversationService } from "../../services/concrete/ConversationService";
 import { CreateConversationDTO } from "../../dtos/request/conversation/createConversation.dto";
+import jwt from "jsonwebtoken";
 
 const conversationService = new ConversationService();
 
 export const conversationResolver: IResolvers = {
+
+
   Query: {
-    getUserConversations: async (_parent, { cursor, limit }: { cursor?: string; limit?: number }) => {
-      return conversationService.getUserConversations({ cursor, limit });
+    getUserConversations: async (_parent, { cursor, limit }, {token}) => {
+
+      if (!token) throw new Error("Authentication required");    
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
+    
+      return conversationService.getUserConversations({
+        userId: decoded.id,
+        cursor,
+        limit
+      });
     },
+
     getConversation: async (_parent, { id }: { id: string }) => {
       return conversationService.getConversationById(id);
     }
@@ -30,7 +42,11 @@ export const conversationResolver: IResolvers = {
   },
 
   Conversation: {
-    id: (parent: any) => parent._id?.toString() || parent.id
+    id: (parent: any) => parent._id?.toString() || parent.id,
+    unreadCount: (parent: any, _args: any, context: any) => {
+      const userId = context.user.id;
+      return parent.unreadCounts?.get(userId) || 0;
+    }
   },
 
   LastMessage: {

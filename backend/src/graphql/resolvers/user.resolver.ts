@@ -7,6 +7,15 @@ import { AuthService } from "../../services/concrete/AuthService";
 const authService = new AuthService();
 
 export const userResolver: IResolvers = {
+
+  User: {
+    id: (parent: any) => {
+      if (parent._id) return parent._id.toString();
+      if (parent.id) return parent.id.toString();
+      return null;
+    }
+  },
+  
   Mutation: {
     login: async (_parent, { input }: { input: LoginDTO }): Promise<AuthResponseDTO> => {
       return authService.login(input);
