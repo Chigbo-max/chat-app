@@ -4,7 +4,9 @@ import { Types } from "mongoose";
 export class ConversationRepository {
 
   async create(data: any) {
-    return Conversation.create(data);
+    const conversation = await Conversation.create(data);
+    return conversation.populate("participants");
+
   }
 
   async findById(id: string) {

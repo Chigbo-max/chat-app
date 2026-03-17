@@ -23,5 +23,17 @@ export const conversationResolver: IResolvers = {
     removeParticipant: async (_parent, { conversationId, userId }: { conversationId: string; userId: string }) => {
       return conversationService.removeParticipant(conversationId, userId);
     }
+  },
+
+  Participant: {
+    id: (parent: any) => parent._id?.toString() || parent.id
+  },
+
+  Conversation: {
+    id: (parent: any) => parent._id?.toString() || parent.id
+  },
+
+  LastMessage: {
+    id: (parent: any) => parent._id?.toString() || parent.id
   }
 };

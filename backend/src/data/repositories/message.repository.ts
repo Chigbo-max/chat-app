@@ -4,7 +4,8 @@ import { Types } from "mongoose";
 export class MessageRepository {
 
   async create(data: any) {
-    return Message.create(data);
+    const message = await Message.create(data);
+    return message.populate("sender");
   }
 
   async findById(messageId: string) {

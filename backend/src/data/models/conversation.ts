@@ -43,6 +43,17 @@ const ConversationSchema = new Schema<IConversation>(
     { timestamps: true }
 );
 
+ConversationSchema.set("toJSON", {
+    transform: (_doc, ret: any) => {
+      ret.id = ret._id.toString();
+      delete ret._id;
+      delete ret.__v;
+      return ret;
+    }
+  });
+
+
+
 ConversationSchema.index({ participants: 1 });
 
 
