@@ -1,5 +1,4 @@
-// src/components/Chat/MessageBubble.tsx
-import React from "react";
+
 import clsx from "clsx";
 
 interface Props {

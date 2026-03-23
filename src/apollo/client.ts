@@ -11,12 +11,12 @@ const httpLink = new HttpLink({
 
 // Auth link
 const authLink = new SetContextLink((prevContext) => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("accessToken");
 
   return {
     headers: {
       ...prevContext.headers,
-      authorization: token ? `Bearer ${token}` : undefined,
+      authorization: token ? `Bearer ${token}` : "",
     },
   };
 });

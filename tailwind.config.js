@@ -1,6 +1,15 @@
-/** @type {import('tailwindcss').Config} */
+const { shadcnPreset } = require("tailwind-config");
+
 module.exports = {
-    content: ["./src/**/*.{js,ts,jsx,tsx}"],
-    theme: { extend: {} },
-    plugins: [],
-  };
+  presets: [shadcnPreset()],
+  darkMode: ["class"],
+  content: [
+    "./index.html",
+    "./src/**/*.{ts,tsx,js,jsx}"
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+
