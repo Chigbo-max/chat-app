@@ -4,6 +4,7 @@ export interface IConversation extends Document {
     name?: string;
     isGroup: boolean;
     participants: Types.ObjectId[];
+    admins: Types.ObjectId[];
     lastMessage?: Types.ObjectId;
     lastMessageAt?: Date;
     unreadCounts?: Map<string, number>;
@@ -21,6 +22,13 @@ const ConversationSchema = new Schema<IConversation>(
         },
 
         participants: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: "User"
+            }
+        ],
+
+        admins: [
             {
                 type: Schema.Types.ObjectId,
                 ref: "User"

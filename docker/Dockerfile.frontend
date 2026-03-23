@@ -1,0 +1,17 @@
+FROM node:20 AS frontend
+
+WORDIR /app/frontend
+
+COPY ./frontend/chat-app/ ./
+
+ENV ROLLUP_NO_BINARY=true
+
+RUN rm -rf package-lock.json node_modules
+RUN npm cache clean --force
+
+COPY frontend/chat-app/package.json ./
+COPY frontend/chat-app/package-lock.json ./
+
+RUN npm install --legacy-peer-deps
+
+RUN npm run build

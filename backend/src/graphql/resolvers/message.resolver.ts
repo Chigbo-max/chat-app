@@ -49,13 +49,24 @@ export const messageResolver = (
 
   Message: {
     id: (parent: any) => parent._id?.toString() || parent.id,
-    conversationId: (parent: any) => parent.conversation?.toString() || parent.conversationId,
+    conversationId: (parent: any) => {
+      const rawConversation = parent.conversation ?? parent.conversationId ?? parent._doc?.conversation;
+      if (rawConversation == null) {
+        // Guard against GraphQL non-null failure and avoid internal inconsistency.
+        throw new Error("ConversationId missing on Message payload");
+      }
+      if (typeof rawConversation === "string") return rawConversation;
+      if (rawConversation?.toString) return rawConversation.toString();
+      if (rawConversation?._id?.toString) return rawConversation._id.toString();
+      return String(rawConversation);
+    },
     sender: (parent: any) => parent.sender,
     reactions: (parent: any) =>
       parent.reactions.map((r: any) => ({
         user: r.user?.toString(),
         emoji: r.emoji,
       })),
+
     readBy: (parent: any) => parent.readBy?.map((u: any) => u.toString()) || [],
   },
 });

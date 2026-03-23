@@ -6,4 +6,6 @@ export interface IConversationService {
   getUserConversations(params: { userId: string, cursor?: string; limit?: number }): Promise<any>;
   addParticipant(conversationId: string, userId: string): Promise<any>;
   removeParticipant(conversationId: string, userId: string): Promise<any>;
+  makeAdmin(conversationId: string, userId: string): Promise<any>;
+  removeAdmin(conversationId: string, userId: string): Promise<any>;
 }

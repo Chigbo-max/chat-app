@@ -86,7 +86,6 @@ export class AuthService implements IAuthService {
       user = await this.userRepo.create({
         ...userData,
         password: hashed,
-        isOnline: true,
       });
     }else{
       throw new Error("User already exists, please login instead");

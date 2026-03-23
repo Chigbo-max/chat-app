@@ -11,4 +11,5 @@ export interface IMessageService {
     userId: string;
   }): Promise<any>;
   markMessageRead(messageId: string, token: string): Promise<any>;
+  getMessageById(messageId: string): Promise<any>;
 }

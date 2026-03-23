@@ -129,4 +129,35 @@ export class ConversationRepository {
     );
   }
 
+  async addAdmin(conversationId: string, userId: string) {
+    return Conversation.findByIdAndUpdate(
+      conversationId,
+      {
+        $addToSet: { admins: new Types.ObjectId(userId) }
+      },
+      { new: true }
+    );
+  }
+
+  async removeAdmin(conversationId: string, userId: string) {
+    return Conversation.findByIdAndUpdate(
+      conversationId,
+      {
+        $pull: { admins: new Types.ObjectId(userId) }
+      },
+      { new: true }
+    );
+  }
+
+  async findOneOnOneConversation(user1: string, user2: string) {
+    return Conversation.findOne({
+      isGroup: false,
+      participants: { $all: [user1, user2], $size: 2 },
+    });
+  }
+
+  async findOne(filter: any) {
+  return Conversation.findOne(filter);
+}
+
 }

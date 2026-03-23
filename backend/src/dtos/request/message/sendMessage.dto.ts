@@ -1,5 +1,6 @@
 export interface SendMessageDTO {
-  conversationId: string;
+  conversationId?: string;
+  recipientId?: string;
   content?: string;
   mediaUrl?: string;
 }

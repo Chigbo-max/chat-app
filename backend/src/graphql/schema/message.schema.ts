@@ -4,7 +4,8 @@ export const messageSchema = gql`
   scalar Date
 
   input SendMessageInput {
-    conversationId: ID!
+    conversationId: ID
+    recipientId: ID
     content: String
     mediaUrl: String
   }
