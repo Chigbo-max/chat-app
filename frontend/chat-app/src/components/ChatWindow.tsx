@@ -1,18 +1,20 @@
 // src/components/Chat/ChatWindow.tsx
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Settings } from "lucide-react";
+import { Send, Settings, Smile } from "lucide-react";
 import GroupManagementModal from "./GroupManagementModal";
 import {
   GET_MESSAGES,
   SEND_MESSAGE_MUTATION,
   GET_CONVERSATION,
   GET_USER_CONVERSATIONS,
+  ADD_REACTION_MUTATION,
+  REMOVE_REACTION_MUTATION,
 } from "@/graphql/queries";
 
 interface ChatWindowProps {
@@ -75,6 +77,20 @@ interface GetUserConversationsCache {
   };
 }
 
+interface AddReactionResponse {
+  addReaction: {
+    id: string;
+    reactions: { user: string; emoji: string }[];
+  };
+}
+
+interface RemoveReactionResponse {
+  removeReaction: {
+    id: string;
+    reactions: { user: string; emoji: string }[];
+  };
+}
+
 const formatTime = (isoDate: string) => {
   try {
     return new Date(isoDate).toLocaleTimeString([], {
@@ -92,10 +108,26 @@ export default function ChatWindow({
 }: ChatWindowProps) {
   const [text, setText] = useState("");
   const [isGroupManagementOpen, setIsGroupManagementOpen] = useState(false);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState<string | null>(null);
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "null");
 
   const isNewContactConversation = conversationId?.startsWith("user-");
+
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        emojiPickerOpen &&
+        !(event.target as Element).closest(".emoji-picker")
+      ) {
+        setEmojiPickerOpen(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [emojiPickerOpen]);
 
   const { data, loading, error } = useQuery<{
     getMessages: { messages: Message[] };
@@ -109,9 +141,9 @@ export default function ChatWindow({
     nextFetchPolicy: "cache-first",
   });
 
-  const [sendMessage, { loading: isSending }] = useMutation<
-    { sendMessage: Message }
-  >(SEND_MESSAGE_MUTATION, {
+  const [sendMessage, { loading: isSending }] = useMutation<{
+    sendMessage: Message;
+  }>(SEND_MESSAGE_MUTATION, {
     update(cache, { data }) {
       if (!data?.sendMessage) return;
 
@@ -147,10 +179,11 @@ export default function ChatWindow({
 
       // 🔥 2. Update sidebar (THIS FIXES YOUR ISSUE)
       try {
-        const existingConversations = cache.readQuery<GetUserConversationsCache>({
-          query: GET_USER_CONVERSATIONS,
-          variables: { limit: 30 },
-        });
+        const existingConversations =
+          cache.readQuery<GetUserConversationsCache>({
+            query: GET_USER_CONVERSATIONS,
+            variables: { limit: 30 },
+          });
 
         if (existingConversations?.getUserConversations?.conversations) {
           let updated =
@@ -170,14 +203,14 @@ export default function ChatWindow({
                   };
                 }
                 return conv;
-              }
+              },
             );
 
           // ✅ Move updated conversation to top
           updated = updated.sort(
             (a, b) =>
               new Date(b.lastMessageAt || 0).getTime() -
-              new Date(a.lastMessageAt || 0).getTime()
+              new Date(a.lastMessageAt || 0).getTime(),
           );
 
           cache.writeQuery({
@@ -206,12 +239,94 @@ export default function ChatWindow({
     },
   });
 
+  const [addReaction] = useMutation<AddReactionResponse>(
+    ADD_REACTION_MUTATION,
+    {
+      update(cache, { data }) {
+        if (!data?.addReaction) return;
+
+        // Update the message in cache
+        try {
+          const existingMessages = cache.readQuery<{
+            getMessages: { messages: Message[] };
+          }>({
+            query: GET_MESSAGES,
+            variables: { conversationId, limit: 100 },
+          });
+
+          if (existingMessages?.getMessages?.messages) {
+            const updatedMessages = existingMessages.getMessages.messages.map(
+              (msg) =>
+                msg.id === data.addReaction.id
+                  ? { ...msg, reactions: data.addReaction.reactions }
+                  : msg,
+            );
+
+            cache.writeQuery({
+              query: GET_MESSAGES,
+              variables: { conversationId, limit: 100 },
+              data: {
+                getMessages: {
+                  ...existingMessages.getMessages,
+                  messages: updatedMessages,
+                },
+              },
+            });
+          }
+        } catch {
+          // ignore cache errors
+        }
+      },
+    },
+  );
+
+  const [removeReaction] = useMutation<RemoveReactionResponse>(
+    REMOVE_REACTION_MUTATION,
+    {
+      update(cache, { data }) {
+        if (!data?.removeReaction) return;
+
+        // Update the message in cache
+        try {
+          const existingMessages = cache.readQuery<{
+            getMessages: { messages: Message[] };
+          }>({
+            query: GET_MESSAGES,
+            variables: { conversationId, limit: 100 },
+          });
+
+          if (existingMessages?.getMessages?.messages) {
+            const updatedMessages = existingMessages.getMessages.messages.map(
+              (msg) =>
+                msg.id === data.removeReaction.id
+                  ? { ...msg, reactions: data.removeReaction.reactions }
+                  : msg,
+            );
+
+            cache.writeQuery({
+              query: GET_MESSAGES,
+              variables: { conversationId, limit: 100 },
+              data: {
+                getMessages: {
+                  ...existingMessages.getMessages,
+                  messages: updatedMessages,
+                },
+              },
+            });
+          }
+        } catch {
+          // ignore cache errors
+        }
+      },
+    },
+  );
+
   const { data: conversationData } = useQuery<GetConversationData>(
     GET_CONVERSATION,
     {
       variables: { id: conversationId! },
       skip: !conversationId || isNewContactConversation,
-    }
+    },
   );
 
   const { data: userConversationsData } = useQuery<GetUserConversationsData>(
@@ -219,7 +334,7 @@ export default function ChatWindow({
     {
       variables: { limit: 30 },
       fetchPolicy: "cache-first",
-    }
+    },
   );
 
   const isGroup = conversationData?.getConversation?.isGroup;
@@ -233,9 +348,7 @@ export default function ChatWindow({
     return [...msgs].reverse();
   }, [data]);
 
-  const handleSend = async (
-    event: React.SyntheticEvent<HTMLFormElement>
-  ) => {
+  const handleSend = async (event: React.SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!conversationId) return;
@@ -272,14 +385,21 @@ export default function ChatWindow({
       },
     });
 
-    if (
-      isNewContactConversation &&
-      result?.data?.sendMessage?.conversationId
-    ) {
-      onConversationCreated?.(
-        result.data.sendMessage.conversationId
-      );
+    if (isNewContactConversation && result?.data?.sendMessage?.conversationId) {
+      onConversationCreated?.(result.data.sendMessage.conversationId);
     }
+  };
+
+  const handleAddReaction = async (messageId: string, emoji: string) => {
+    await addReaction({
+      variables: { messageId, emoji },
+    });
+  };
+
+  const handleRemoveReaction = async (messageId: string, emoji: string) => {
+    await removeReaction({
+      variables: { messageId, emoji },
+    });
   };
 
   const selectedName =
@@ -292,9 +412,7 @@ export default function ChatWindow({
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b bg-card">
         <Avatar>
-          <AvatarFallback>
-            {selectedName?.[0] || "C"}
-          </AvatarFallback>
+          <AvatarFallback>{selectedName?.[0] || "C"}</AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <p className="font-semibold">{selectedName}</p>
@@ -303,8 +421,7 @@ export default function ChatWindow({
               ? isGroup
                 ? `${participants.length} members${isCurrentUserAdmin ? " • Admin" : ""}`
                 : "Online"
-              : "Select a conversation"
-            }
+              : "Select a conversation"}
           </p>
         </div>
 
@@ -312,7 +429,10 @@ export default function ChatWindow({
         {isGroup && participants.length > 0 && (
           <div className="flex -space-x-2">
             {participants.slice(0, 3).map((participant) => (
-              <Avatar key={participant.id} className="w-8 h-8 border-2 border-background">
+              <Avatar
+                key={participant.id}
+                className="w-8 h-8 border-2 border-background"
+              >
                 <AvatarFallback className="text-xs">
                   {participant.username[0]}
                 </AvatarFallback>
@@ -341,13 +461,9 @@ export default function ChatWindow({
       {/* Messages */}
       <ScrollArea className="flex-1 p-4 overflow-y-auto">
         {loading && (
-          <p className="text-muted-foreground">
-            Loading messages...
-          </p>
+          <p className="text-muted-foreground">Loading messages...</p>
         )}
-        {error && (
-          <p className="text-destructive">{error.message}</p>
-        )}
+        {error && <p className="text-destructive">{error.message}</p>}
 
         <div className="flex flex-col gap-2">
           {messages.map((msg) => {
@@ -356,12 +472,10 @@ export default function ChatWindow({
             return (
               <div
                 key={msg.id}
-                className={`flex ${
-                  isMe ? "justify-end" : "justify-start"
-                }`}
+                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
+                  className={`relative max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
                     isMe
                       ? "bg-primary text-primary-foreground"
                       : "bg-card border"
@@ -369,14 +483,131 @@ export default function ChatWindow({
                 >
                   <p>{msg.content || "[media]"}</p>
 
+                  {/* Reactions */}
+                  {msg.reactions && msg.reactions.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {Object.entries(
+                        msg.reactions.reduce(
+                          (acc, reaction) => {
+                            if (!acc[reaction.emoji]) {
+                              acc[reaction.emoji] = { count: 0, users: [] };
+                            }
+                            acc[reaction.emoji].count++;
+                            acc[reaction.emoji].users.push(reaction.user);
+                            return acc;
+                          },
+                          {} as Record<
+                            string,
+                            { count: number; users: string[] }
+                          >,
+                        ),
+                      ).map(([emoji, data]) => (
+                        <button
+                          key={emoji}
+                          onClick={() => {
+                            if (data.users.includes(currentUser?.id || "")) {
+                              handleRemoveReaction(msg.id, emoji);
+                            } else {
+                              handleAddReaction(msg.id, emoji);
+                            }
+                          }}
+                          className={`px-2 py-1 rounded-full text-xs border transition-colors ${
+                            data.users.includes(currentUser?.id || "")
+                              ? "bg-blue-100 border-blue-300 text-blue-700"
+                              : "bg-gray-100 border-gray-300 hover:bg-gray-200"
+                          }`}
+                        >
+                          {emoji} {data.count}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Emoji Picker Toggle */}
                   <div className="flex items-center justify-between text-[10px] mt-1 opacity-80">
                     <span>{formatTime(msg.createdAt)}</span>
-                    <span>
-                      {msg.status === "sending"
-                        ? "Sending..."
-                        : msg.status || "sent"}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() =>
+                          setEmojiPickerOpen(
+                            emojiPickerOpen === msg.id ? null : msg.id,
+                          )
+                        }
+                        className="p-1 hover:bg-gray-100 rounded transition-colors"
+                        title="Add reaction"
+                      >
+                        <Smile className="w-3 h-3" />
+                      </button>
+                      <span className="ml-2">
+                        {msg.status === "sending"
+                          ? "Sending..."
+                          : msg.status || "sent"}
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Emoji Picker */}
+                  {emojiPickerOpen === msg.id && (
+                    <div
+                      className={`emoji-picker absolute bottom-full mb-2 ${
+                        isMe ? "left-0" : "right-0"
+                      } bg-white border border-gray-200 rounded-xl p-3 shadow-xl z-10 w-64 max-h-48 overflow-y-auto`}
+                    >
+                      <div className="grid grid-cols-6 gap-2">
+                        {[
+                          "👍",
+                          "❤️",
+                          "😂",
+                          "😮",
+                          "😢",
+                          "😡",
+                          "🎉",
+                          "💐",
+                          "🔥",
+                          "👏",
+                          "🤔",
+                          "😴",
+                          "🙏",
+                          "😍",
+                          "🤗",
+                          "🤩",
+                          "🥳",
+                          "😎",
+                          "🤯",
+                          "😅",
+                          "😆",
+                          "😇",
+                          "🙂",
+                          "🙃",
+                          "😉",
+                          "😌",
+                          "😋",
+                          "😜",
+                          "🤪",
+                          "😝",
+                          "🤑",
+                          "🤠",
+                          "😏",
+                          "😒",
+                          "🙄",
+                          "😬",
+                          "🤥",
+                        ].map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => {
+                              handleAddReaction(msg.id, emoji);
+                              setEmojiPickerOpen(null);
+                            }}
+                            className="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-gray-100 active:scale-95 transition"
+                            title={`React with ${emoji}`}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -410,11 +641,11 @@ export default function ChatWindow({
       </form>
 
       {/* Group Management Modal */}
-      {conversationId && conversationData && (
+      {conversationId && (
         <GroupManagementModal
           isOpen={isGroupManagementOpen}
           onOpenChange={setIsGroupManagementOpen}
-          conversation={conversationData.getConversation || null}
+          conversationId={conversationId}
           currentUser={currentUser}
           allUsers={allUsers}
         />

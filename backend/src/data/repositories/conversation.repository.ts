@@ -110,43 +110,47 @@ export class ConversationRepository {
   }
 
   async addParticipant(conversationId: string, userId: string) {
-    return Conversation.findByIdAndUpdate(
+    await Conversation.findByIdAndUpdate(
       conversationId,
       {
         $addToSet: { participants: new Types.ObjectId(userId) }
       },
       { new: true }
     );
+    return this.findById(conversationId);
   }
 
   async removeParticipant(conversationId: string, userId: string) {
-    return Conversation.findByIdAndUpdate(
+    await Conversation.findByIdAndUpdate(
       conversationId,
       {
         $pull: { participants: new Types.ObjectId(userId) }
       },
       { new: true }
     );
+    return this.findById(conversationId);
   }
 
   async addAdmin(conversationId: string, userId: string) {
-    return Conversation.findByIdAndUpdate(
+    await Conversation.findByIdAndUpdate(
       conversationId,
       {
         $addToSet: { admins: new Types.ObjectId(userId) }
       },
       { new: true }
     );
+    return this.findById(conversationId);
   }
 
   async removeAdmin(conversationId: string, userId: string) {
-    return Conversation.findByIdAndUpdate(
+    await Conversation.findByIdAndUpdate(
       conversationId,
       {
         $pull: { admins: new Types.ObjectId(userId) }
       },
       { new: true }
     );
+    return this.findById(conversationId);
   }
 
   async findOneOnOneConversation(user1: string, user2: string) {

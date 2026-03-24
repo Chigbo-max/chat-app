@@ -199,6 +199,30 @@ export const REMOVE_ADMIN_MUTATION = gql`
   }
 `;
 
+export const ADD_REACTION_MUTATION = gql`
+  mutation addReaction($messageId: ID!, $emoji: String!) {
+    addReaction(messageId: $messageId, emoji: $emoji) {
+      id
+      reactions {
+        user
+        emoji
+      }
+    }
+  }
+`;
+
+export const REMOVE_REACTION_MUTATION = gql`
+  mutation removeReaction($messageId: ID!, $emoji: String!) {
+    removeReaction(messageId: $messageId, emoji: $emoji) {
+      id
+      reactions {
+        user
+        emoji
+      }
+    }
+  }
+`;
+
 export const ADD_PARTICIPANT_MUTATION = gql`
   mutation addParticipant($conversationId: ID!, $userId: ID!) {
     addParticipant(conversationId: $conversationId, userId: $userId) {

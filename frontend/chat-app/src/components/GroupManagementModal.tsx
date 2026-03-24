@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@apollo/client/react";
+import { useQuery, useMutation } from "@apollo/client/react";
 import { ApolloCache } from "@apollo/client";
 import {
   Dialog,
@@ -34,6 +34,10 @@ interface Conversation {
   admins: string[];
 }
 
+interface GetConversationData {
+  getConversation: Conversation;
+}
+
 interface GetUserConversationsData {
   getUserConversations: {
     conversations: Conversation[];
@@ -46,7 +50,7 @@ interface GetUserConversationsData {
 interface GroupManagementModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  conversation: Conversation | null;
+  conversationId: string;
   currentUser: Participant | null;
   allUsers: Participant[];
 }
@@ -54,25 +58,35 @@ interface GroupManagementModalProps {
 export default function GroupManagementModal({
   isOpen,
   onOpenChange,
-  conversation,
+  conversationId,
   currentUser,
   allUsers,
 }: GroupManagementModalProps) {
   const [showAddMembers, setShowAddMembers] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const updateConversationCache = (
+  const { data: conversationData } = useQuery<GetConversationData>(GET_CONVERSATION, {
+    variables: { id: conversationId },
+    skip: !conversationId,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const conversation = conversationData?.getConversation || null;
+
+  const updateCache = (
     cache: ApolloCache,
     updatedConversation: Conversation | null
   ) => {
-    if (!updatedConversation || !conversation?.id) return;
+    if (!updatedConversation || !conversationId) return;
 
+    // Update the conversation cache
     cache.writeQuery({
       query: GET_CONVERSATION,
-      variables: { id: conversation.id },
+      variables: { id: conversationId },
       data: { getConversation: updatedConversation },
     });
 
+    // Update the user conversations cache
     try {
       const existingUserConv = cache.readQuery<GetUserConversationsData>({
         query: GET_USER_CONVERSATIONS,
@@ -113,9 +127,8 @@ export default function GroupManagementModal({
     { conversationId: string; userId: string }
   >(REMOVE_PARTICIPANT_MUTATION, {
     update: (cache, result) => {
-      updateConversationCache(cache, result.data?.removeParticipant || null);
+      updateCache(cache, result.data?.removeParticipant || null);
     },
-    awaitRefetchQueries: true,
   });
 
   const [makeAdmin] = useMutation<
@@ -123,9 +136,8 @@ export default function GroupManagementModal({
     { conversationId: string; userId: string }
   >(MAKE_ADMIN_MUTATION, {
     update: (cache, result) => {
-      updateConversationCache(cache, result.data?.makeAdmin || null);
+      updateCache(cache, result.data?.makeAdmin || null);
     },
-    awaitRefetchQueries: true,
   });
 
   const [removeAdmin] = useMutation<
@@ -133,9 +145,8 @@ export default function GroupManagementModal({
     { conversationId: string; userId: string }
   >(REMOVE_ADMIN_MUTATION, {
     update: (cache, result) => {
-      updateConversationCache(cache, result.data?.removeAdmin || null);
+      updateCache(cache, result.data?.removeAdmin || null);
     },
-    awaitRefetchQueries: true,
   });
 
   const [addParticipant] = useMutation<
@@ -143,9 +154,8 @@ export default function GroupManagementModal({
     { conversationId: string; userId: string }
   >(ADD_PARTICIPANT_MUTATION, {
     update: (cache, result) => {
-      updateConversationCache(cache, result.data?.addParticipant || null);
+      updateCache(cache, result.data?.addParticipant || null);
     },
-    awaitRefetchQueries: true,
   });
 
   if (!conversation || !currentUser) return null;
@@ -156,45 +166,45 @@ export default function GroupManagementModal({
 
   // Users not in the group (for adding)
   const availableUsers = allUsers.filter(
-    user => !participants.some(p => p.id === user.id)
+    (user: Participant) => !participants.some((p: Participant) => p.id === user.id)
   );
 
-  const filteredAvailableUsers = availableUsers.filter(user =>
+  const filteredAvailableUsers = availableUsers.filter((user: Participant) =>
     user.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleRemoveParticipant = async (userId: string) => {
-    if (!conversation.id) return;
+    if (!conversationId) return;
     await removeParticipant({
-      variables: { conversationId: conversation.id, userId },
+      variables: { conversationId, userId },
     });
   };
 
   const handleMakeAdmin = async (userId: string) => {
-    if (!conversation.id) return;
+    if (!conversationId) return;
     await makeAdmin({
-      variables: { conversationId: conversation.id, userId },
+      variables: { conversationId, userId },
     });
   };
 
   const handleRemoveAdmin = async (userId: string) => {
-    if (!conversation.id) return;
+    if (!conversationId) return;
     await removeAdmin({
-      variables: { conversationId: conversation.id, userId },
+      variables: { conversationId, userId },
     });
   };
 
   const handleAddParticipant = async (userId: string) => {
-    if (!conversation.id) return;
+    if (!conversationId) return;
     await addParticipant({
-      variables: { conversationId: conversation.id, userId },
+      variables: { conversationId, userId },
     });
     setShowAddMembers(false);
     setSearchQuery("");
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog key={conversation?.id} open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -281,7 +291,7 @@ export default function GroupManagementModal({
             <h4 className="font-medium mb-3">Members ({participants.length})</h4>
             <ScrollArea className="flex-1">
               <div className="space-y-2">
-                {participants.map((participant) => {
+                {participants.map((participant: Participant) => {
                   const isAdmin = admins.includes(participant.id);
                   const isCurrentUser = participant.id === currentUser.id;
 
