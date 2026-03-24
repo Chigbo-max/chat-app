@@ -382,7 +382,7 @@ export default function Sidebar({
                 </button>
 
                 {convMenuOpen === conv.id && (
-                  <div className="conv-menu absolute right-8 top-1/2 -translate-y-1/2 bg-white border border-gray-200 rounded-xl p-2 shadow-xl z-20 w-40">
+                  <div className="conv-menu absolute right-8 top-1/2 -translate-y-1/2 bg-card border border-border rounded-xl p-2 shadow-xl z-20 w-40">
                     {conv.isGroup && isMeAdmin && (
                       <button
                         onClick={() => {
@@ -391,7 +391,7 @@ export default function Sidebar({
                           setIsEditModalOpen(true);
                           setConvMenuOpen(null);
                         }}
-                        className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm"
+                        className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm"
                       >
                         Edit Group
                       </button>
@@ -403,7 +403,7 @@ export default function Sidebar({
                         });
                         setConvMenuOpen(null);
                       }}
-                      className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm text-red-600"
+                      className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm text-red-600"
                     >
                       Delete Chat
                     </button>
@@ -415,7 +415,7 @@ export default function Sidebar({
                           });
                           setConvMenuOpen(null);
                         }}
-                        className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm"
+                        className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm"
                       >
                         Mark as read
                       </button>

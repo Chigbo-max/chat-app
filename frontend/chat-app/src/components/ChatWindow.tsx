@@ -669,8 +669,8 @@ export default function ChatWindow({
                             }}
                             className={`px-2 py-1 rounded-full text-xs border transition-colors ${
                               data.users.includes(currentUser?.id || "")
-                                ? "bg-blue-100 border-blue-300 text-blue-700"
-                                : "bg-gray-100 border-gray-300 hover:bg-gray-200"
+                                ? "bg-primary/20 border-primary text-primary"
+                                : "bg-muted border-border hover:bg-accent"
                             }`}
                           >
                             {emoji} {data.count}
