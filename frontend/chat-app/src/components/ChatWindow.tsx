@@ -624,19 +624,21 @@ export default function ChatWindow({
                   className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`relative max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
+                    className={`relative max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-md transition-colors ${
                       isMe
-                        ? "bg-primary text-primary-foreground rounded-tr-none"
-                        : "bg-card border rounded-tl-none"
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-black rounded-tr-none"
+                        : "bg-slate-800 text-white dark:bg-slate-200 dark:text-black rounded-tl-none"
                     }`}
                   >
-                    <p>
+                    <p className="font-medium">
                       {msg.content && msg.content.trim().length > 0
                         ? msg.content
                         : "[message deleted]"}
                     </p>
                     {msg.edited && (
-                      <span className="mt-1 text-[10px] opacity-70">edited</span>
+                      <span className="mt-1 text-[10px] opacity-60 italic block">
+                        edited
+                      </span>
                     )}
 
                     {/* Reactions */}
@@ -667,10 +669,10 @@ export default function ChatWindow({
                                 handleAddReaction(msg.id, emoji);
                               }
                             }}
-                            className={`px-2 py-1 rounded-full text-xs border transition-colors ${
+                            className={`px-2 py-1 rounded-full text-[11px] border transition-colors ${
                               data.users.includes(currentUser?.id || "")
                                 ? "bg-primary/20 border-primary text-primary"
-                                : "bg-muted border-border hover:bg-accent"
+                                : "bg-muted/30 border-border hover:bg-muted"
                             }`}
                           >
                             {emoji} {data.count}
@@ -680,7 +682,7 @@ export default function ChatWindow({
                     )}
 
                     {/* Emoji Picker Toggle */}
-                    <div className="flex items-center justify-between text-[10px] mt-1 opacity-80">
+                    <div className="flex items-center justify-between text-[10px] mt-2 opacity-70">
                       <span>{formatTime(msg.createdAt)}</span>
                       <div className="flex items-center gap-1">
                         <button
@@ -689,7 +691,7 @@ export default function ChatWindow({
                               emojiPickerOpen === msg.id ? null : msg.id,
                             )
                           }
-                          className="p-1 hover:bg-gray-100/20 rounded transition-colors"
+                          className="p-1 hover:bg-black/10 dark:hover:bg-black/5 rounded transition-colors"
                           title="Add reaction"
                         >
                           <Smile className="w-3 h-3" />
@@ -700,12 +702,12 @@ export default function ChatWindow({
                               messageMenuOpen === msg.id ? null : msg.id,
                             )
                           }
-                          className="p-1 hover:bg-gray-100/20 rounded transition-colors"
+                          className="p-1 hover:bg-black/10 dark:hover:bg-black/5 rounded transition-colors"
                           title="More"
                         >
                           <MoreVertical className="w-3 h-3" />
                         </button>
-                        <span className="ml-2">
+                        <span className="ml-2 font-medium">
                           {msg.status === "sending"
                             ? "Sending..."
                             : msg.status || "sent"}
