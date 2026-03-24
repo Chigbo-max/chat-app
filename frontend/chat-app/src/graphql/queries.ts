@@ -136,6 +136,9 @@ export const SEND_MESSAGE_MUTATION = gql`
         username
         avatar
       }
+      readBy
+      edited
+      deleted
       createdAt
       status
     }
@@ -229,6 +232,63 @@ export const ADD_PARTICIPANT_MUTATION = gql`
       id
       participants { id username avatar }
       admins
+    }
+  }
+`;
+
+export const EDIT_MESSAGE_MUTATION = gql`
+  mutation editMessage($input: EditMessageInput!) {
+    editMessage(input: $input) {
+      id
+      content
+      edited
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_MESSAGE_MUTATION = gql`
+  mutation deleteMessage($messageId: ID!) {
+    deleteMessage(messageId: $messageId) {
+      id
+      deleted
+      content
+      updatedAt
+    }
+  }
+`;
+
+export const MARK_MESSAGE_READ_MUTATION = gql`
+  mutation markMessageRead($messageId: ID!) {
+    markMessageRead(messageId: $messageId) {
+      id
+      readBy
+      status
+      updatedAt
+    }
+  }
+`;
+
+export const EDIT_CONVERSATION_MUTATION = gql`
+  mutation editConversation($conversationId: ID!, $name: String!) {
+    editConversation(conversationId: $conversationId, name: $name) {
+      id
+      name
+    }
+  }
+`;
+
+export const DELETE_CONVERSATION_MUTATION = gql`
+  mutation deleteConversation($conversationId: ID!) {
+    deleteConversation(conversationId: $conversationId)
+  }
+`;
+
+export const MARK_CONVERSATION_READ_MUTATION = gql`
+  mutation markConversationRead($conversationId: ID!) {
+    markConversationRead(conversationId: $conversationId) {
+      id
+      unreadCounts
     }
   }
 `;

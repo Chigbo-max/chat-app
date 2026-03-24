@@ -164,4 +164,12 @@ export class ConversationRepository {
   return Conversation.findOne(filter);
 }
 
+  async update(id: string, data: any) {
+    return Conversation.findByIdAndUpdate(id, data, { new: true }).populate("participants");
+  }
+
+  async delete(id: string) {
+    return Conversation.findByIdAndDelete(id);
+  }
+
 }

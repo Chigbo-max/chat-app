@@ -1,16 +1,27 @@
 // src/components/Chat/Sidebar.tsx
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, MoreVertical, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import GroupCreationModal from "./GroupCreationModal";
 import {
   GET_USER_CONVERSATIONS,
   CREATE_CONVERSATION_MUTATION,
+  EDIT_CONVERSATION_MUTATION,
+  DELETE_CONVERSATION_MUTATION,
+  MARK_CONVERSATION_READ_MUTATION,
 } from "@/graphql/queries";
 
 interface Participant {
@@ -24,6 +35,8 @@ interface Conversation {
   name?: string;
   isGroup: boolean;
   participants: Participant[];
+  admins: string[];
+  unreadCounts?: any;
   lastMessage?: {
     id: string;
     content?: string;
@@ -52,12 +65,35 @@ interface CreateConversationData {
   createConversation: Conversation;
 }
 
+interface DeleteConversationData {
+  deleteConversation: string;
+}
+
 export default function Sidebar({
   selectedConversationId,
   onSelectConversation,
 }: SidebarProps) {
   const [search, setSearch] = useState("");
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [convMenuOpen, setConvMenuOpen] = useState<string | null>(null);
+  const [editConvId, setEditConvId] = useState<string | null>(null);
+  const [editConvName, setEditConvName] = useState("");
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        convMenuOpen &&
+        !(event.target as Element).closest(".conv-menu")
+      ) {
+        setConvMenuOpen(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [convMenuOpen]);
 
   const { data, loading, error } = useQuery<GetUserConversationsData>(
     GET_USER_CONVERSATIONS,
@@ -70,6 +106,51 @@ export default function Sidebar({
   const [createConversation] = useMutation<CreateConversationData>(
     CREATE_CONVERSATION_MUTATION
   );
+
+  const [editConversation] = useMutation(EDIT_CONVERSATION_MUTATION, {
+    onCompleted: () => {
+      setIsEditModalOpen(false);
+      setEditConvId(null);
+      setEditConvName("");
+    },
+  });
+
+  const [deleteConversation] = useMutation<DeleteConversationData>(
+    DELETE_CONVERSATION_MUTATION,
+    {
+    update(cache, { data }) {
+      const deletedId = data?.deleteConversation;
+      if (!deletedId) return;
+
+      const existing = cache.readQuery<GetUserConversationsData>({
+        query: GET_USER_CONVERSATIONS,
+        variables: { limit: 30 },
+      });
+
+      if (existing?.getUserConversations) {
+        cache.writeQuery({
+          query: GET_USER_CONVERSATIONS,
+          variables: { limit: 30 },
+          data: {
+            ...existing,
+            getUserConversations: {
+              ...existing.getUserConversations,
+              conversations: existing.getUserConversations.conversations.filter(
+                (c) => c.id !== deletedId
+              ),
+            },
+          },
+        });
+      }
+    },
+    onCompleted: (data) => {
+      if (data?.deleteConversation === selectedConversationId) {
+        onSelectConversation("");
+      }
+    },
+  });
+
+  const [markConversationRead] = useMutation(MARK_CONVERSATION_READ_MUTATION);
 
   const currentUser = useMemo(() => {
     try {
@@ -190,6 +271,8 @@ export default function Sidebar({
     onSelectConversation(conversationId);
   };
 
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <div className="w-80 border-r flex flex-col bg-card">
       {/* Header */}
@@ -199,13 +282,20 @@ export default function Sidebar({
           <Button
             size="sm"
             variant="outline"
+            onClick={toggleTheme}
+            className="h-8 w-8 p-0"
+          >
+            {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => setIsGroupModalOpen(true)}
           >
             New Group
           </Button>
           <Button size="sm" variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
+            <LogOut className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -239,43 +329,100 @@ export default function Sidebar({
           {filteredConversations.map((conv) => {
             const isSelected = conv.id === selectedConversationId;
             const lastMessage = conv.lastMessage?.content || "(no messages)";
+            const unreadCount = conv.unreadCounts?.[currentUser?.id] || 0;
+            const isMeAdmin = conv.admins?.includes(currentUser?.id);
 
             return (
-              <button
-                key={conv.id}
-                onClick={() => onSelectConversation(conv.id)}
-                className={`p-3 hover:bg-muted text-left border-b transition ${
-                  isSelected ? "bg-muted" : ""
-                }`}
-              >
-                <div className="flex items-center gap-3">
+              <div key={conv.id} className="relative group">
+                <button
+                  onClick={() => onSelectConversation(conv.id)}
+                  className={`w-full p-3 hover:bg-muted text-left border-b transition flex items-center gap-3 ${
+                    isSelected ? "bg-muted" : ""
+                  }`}
+                >
                   <Avatar>
-                    <AvatarFallback>
-                      {conv.name?.[0] || "C"}
-                    </AvatarFallback>
+                    <AvatarFallback>{conv.name?.[0] || "C"}</AvatarFallback>
                   </Avatar>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between">
-                      <span className="font-medium truncate">
-                        {conv.name}
-                      </span>
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium truncate">{conv.name}</span>
 
                       <span className="text-xs text-muted-foreground">
                         {conv.lastMessageAt
-                          ? new Date(
-                              conv.lastMessageAt
-                            ).toLocaleTimeString()
+                          ? new Date(conv.lastMessageAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
                           : ""}
                       </span>
                     </div>
 
-                    <p className="text-sm text-muted-foreground truncate">
-                      {lastMessage}
-                    </p>
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-muted-foreground truncate">
+                        {lastMessage}
+                      </p>
+                      {unreadCount > 0 && (
+                        <div className="bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] flex items-center justify-center">
+                          {unreadCount}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </button>
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setConvMenuOpen(convMenuOpen === conv.id ? null : conv.id);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                </button>
+
+                {convMenuOpen === conv.id && (
+                  <div className="conv-menu absolute right-8 top-1/2 -translate-y-1/2 bg-white border border-gray-200 rounded-xl p-2 shadow-xl z-20 w-40">
+                    {conv.isGroup && isMeAdmin && (
+                      <button
+                        onClick={() => {
+                          setEditConvId(conv.id);
+                          setEditConvName(conv.name || "");
+                          setIsEditModalOpen(true);
+                          setConvMenuOpen(null);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm"
+                      >
+                        Edit Group
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        deleteConversation({
+                          variables: { conversationId: conv.id },
+                        });
+                        setConvMenuOpen(null);
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm text-red-600"
+                    >
+                      Delete Chat
+                    </button>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => {
+                          markConversationRead({
+                            variables: { conversationId: conv.id },
+                          });
+                          setConvMenuOpen(null);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-gray-100 rounded text-sm"
+                      >
+                        Mark as read
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             );
           })}
 
@@ -313,6 +460,36 @@ export default function Sidebar({
         currentUser={currentUser}
         onGroupCreated={handleGroupCreated}
       />
+
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Group Name</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={editConvName}
+              onChange={(e) => setEditConvName(e.target.value)}
+              placeholder="Group name"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (!editConvId) return;
+                editConversation({
+                  variables: {
+                    conversationId: editConvId,
+                    name: editConvName,
+                  },
+                });
+              }}
+            >
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

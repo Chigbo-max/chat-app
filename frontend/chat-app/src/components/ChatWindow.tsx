@@ -6,7 +6,14 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Settings, Smile } from "lucide-react";
+import { Send, Settings, Smile, MoreVertical } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import GroupManagementModal from "./GroupManagementModal";
 import {
   GET_MESSAGES,
@@ -15,6 +22,9 @@ import {
   GET_USER_CONVERSATIONS,
   ADD_REACTION_MUTATION,
   REMOVE_REACTION_MUTATION,
+  EDIT_MESSAGE_MUTATION,
+  DELETE_MESSAGE_MUTATION,
+  MARK_MESSAGE_READ_MUTATION,
 } from "@/graphql/queries";
 
 interface ChatWindowProps {
@@ -56,6 +66,9 @@ interface Message {
   mediaUrl?: string;
   sender: Participant;
   reactions: { user: string; emoji: string }[];
+  readBy: string[];
+  edited: boolean;
+  deleted: boolean;
   createdAt: string;
   status: string;
   __typename?: string;
@@ -91,6 +104,27 @@ interface RemoveReactionResponse {
   };
 }
 
+interface EditMessageData {
+  editMessage: {
+    id: string;
+    content: string;
+  }
+}
+
+interface DeleteMessageData {
+  deleteMessage: {
+    id: string;
+    content: string;
+  }
+}
+
+interface MarkMessageReadData {
+  markMessageRead: {
+    id: string;
+    readBy: string[];
+    status: string;
+  }
+}
 const formatTime = (isoDate: string) => {
   try {
     return new Date(isoDate).toLocaleTimeString([], {
@@ -109,6 +143,10 @@ export default function ChatWindow({
   const [text, setText] = useState("");
   const [isGroupManagementOpen, setIsGroupManagementOpen] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState<string | null>(null);
+  const [messageMenuOpen, setMessageMenuOpen] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editMessageId, setEditMessageId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
 
   const currentUser = JSON.parse(localStorage.getItem("user") || "null");
 
@@ -123,11 +161,17 @@ export default function ChatWindow({
       ) {
         setEmojiPickerOpen(null);
       }
+      if (
+        messageMenuOpen &&
+        !(event.target as Element).closest(".message-menu")
+      ) {
+        setMessageMenuOpen(null);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [emojiPickerOpen]);
+  }, [emojiPickerOpen, messageMenuOpen]);
 
   const { data, loading, error } = useQuery<{
     getMessages: { messages: Message[] };
@@ -321,6 +365,105 @@ export default function ChatWindow({
     },
   );
 
+  const [editMessage] = useMutation<EditMessageData>(EDIT_MESSAGE_MUTATION, {
+    update(cache, { data }) {
+      const updated = data?.editMessage;
+      if (!updated) return;
+      try {
+        const existing = cache.readQuery<{
+          getMessages: { messages: Message[] };
+        }>({
+          query: GET_MESSAGES,
+          variables: { conversationId, limit: 100 },
+        });
+        if (existing?.getMessages?.messages) {
+          const messages = existing.getMessages.messages.map((m) =>
+            m.id === updated.id
+              ? {
+                  ...m,
+                  content: updated.content,
+                  __typename: "Message",
+                }
+              : m,
+          );
+          cache.writeQuery({
+            query: GET_MESSAGES,
+            variables: { conversationId, limit: 100 },
+            data: { getMessages: { ...existing.getMessages, messages } },
+          });
+        }
+      } catch {}
+    },
+    onCompleted() {
+      setEditOpen(false);
+      setEditMessageId(null);
+      setEditContent("");
+    },
+  });
+
+  const [deleteMessage] = useMutation<DeleteMessageData>(DELETE_MESSAGE_MUTATION, {
+    update(cache, { data }) {
+      const updated = data?.deleteMessage;
+      if (!updated) return;
+      try {
+        const existing = cache.readQuery<{
+          getMessages: { messages: Message[] };
+        }>({
+          query: GET_MESSAGES,
+          variables: { conversationId, limit: 100 },
+        });
+        if (existing?.getMessages?.messages) {
+          const messages = existing.getMessages.messages.map((m) =>
+            m.id === updated.id
+              ? {
+                  ...m,
+                  content: updated.content ?? "",
+                  __typename: "Message",
+                }
+              : m,
+          );
+          cache.writeQuery({
+            query: GET_MESSAGES,
+            variables: { conversationId, limit: 100 },
+            data: { getMessages: { ...existing.getMessages, messages } },
+          });
+        }
+      } catch {}
+    },
+  });
+
+  const [markMessageRead] = useMutation<MarkMessageReadData>(MARK_MESSAGE_READ_MUTATION, {
+    update(cache, { data }) {
+      const updated = data?.markMessageRead;
+      if (!updated) return;
+      try {
+        const existing = cache.readQuery<{
+          getMessages: { messages: Message[] };
+        }>({
+          query: GET_MESSAGES,
+          variables: { conversationId, limit: 100 },
+        });
+        if (existing?.getMessages?.messages) {
+          const messages = existing.getMessages.messages.map((m) =>
+            m.id === updated.id
+              ? {
+                  ...m,
+                  readBy: updated.readBy,
+                  status: updated.status,
+                  __typename: "Message",
+                }
+              : m,
+          );
+          cache.writeQuery({
+            query: GET_MESSAGES,
+            variables: { conversationId, limit: 100 },
+            data: { getMessages: { ...existing.getMessages, messages } },
+          });
+        }
+      } catch {}
+    },
+  });
+
   const { data: conversationData } = useQuery<GetConversationData>(
     GET_CONVERSATION,
     {
@@ -376,10 +519,14 @@ export default function ChatWindow({
             ? "temp-conv"
             : conversationId,
           content: body,
+          
           createdAt: new Date().toISOString(),
           status: "sending",
           sender: currentUser,
           reactions: [],
+          readBy: [],
+          edited: false,
+          deleted: false,
           __typename: "Message",
         },
       },
@@ -459,159 +606,228 @@ export default function ChatWindow({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4 overflow-y-auto">
-        {loading && (
-          <p className="text-muted-foreground">Loading messages...</p>
-        )}
-        {error && <p className="text-destructive">{error.message}</p>}
+      <ScrollArea className="flex-1 overflow-y-auto chat-bg relative">
+        <div className="absolute inset-0 bg-background/50 dark:bg-background/80 pointer-events-none" />
+        <div className="relative p-4">
+          {loading && (
+            <p className="text-muted-foreground">Loading messages...</p>
+          )}
+          {error && <p className="text-destructive">{error.message}</p>}
 
-        <div className="flex flex-col gap-2">
-          {messages.map((msg) => {
-            const isMe = msg.sender?.id === currentUser?.id;
+          <div className="flex flex-col gap-2">
+            {messages.map((msg) => {
+              const isMe = msg.sender?.id === currentUser?.id;
 
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-              >
+              return (
                 <div
-                  className={`relative max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
-                    isMe
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card border"
-                  }`}
+                  key={msg.id}
+                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                 >
-                  <p>{msg.content || "[media]"}</p>
+                  <div
+                    className={`relative max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-sm ${
+                      isMe
+                        ? "bg-primary text-primary-foreground rounded-tr-none"
+                        : "bg-card border rounded-tl-none"
+                    }`}
+                  >
+                    <p>
+                      {msg.content && msg.content.trim().length > 0
+                        ? msg.content
+                        : "[message deleted]"}
+                    </p>
+                    {msg.edited && (
+                      <span className="mt-1 text-[10px] opacity-70">edited</span>
+                    )}
 
-                  {/* Reactions */}
-                  {msg.reactions && msg.reactions.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {Object.entries(
-                        msg.reactions.reduce(
-                          (acc, reaction) => {
-                            if (!acc[reaction.emoji]) {
-                              acc[reaction.emoji] = { count: 0, users: [] };
-                            }
-                            acc[reaction.emoji].count++;
-                            acc[reaction.emoji].users.push(reaction.user);
-                            return acc;
-                          },
-                          {} as Record<
-                            string,
-                            { count: number; users: string[] }
-                          >,
-                        ),
-                      ).map(([emoji, data]) => (
-                        <button
-                          key={emoji}
-                          onClick={() => {
-                            if (data.users.includes(currentUser?.id || "")) {
-                              handleRemoveReaction(msg.id, emoji);
-                            } else {
-                              handleAddReaction(msg.id, emoji);
-                            }
-                          }}
-                          className={`px-2 py-1 rounded-full text-xs border transition-colors ${
-                            data.users.includes(currentUser?.id || "")
-                              ? "bg-blue-100 border-blue-300 text-blue-700"
-                              : "bg-gray-100 border-gray-300 hover:bg-gray-200"
-                          }`}
-                        >
-                          {emoji} {data.count}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Emoji Picker Toggle */}
-                  <div className="flex items-center justify-between text-[10px] mt-1 opacity-80">
-                    <span>{formatTime(msg.createdAt)}</span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() =>
-                          setEmojiPickerOpen(
-                            emojiPickerOpen === msg.id ? null : msg.id,
-                          )
-                        }
-                        className="p-1 hover:bg-gray-100 rounded transition-colors"
-                        title="Add reaction"
-                      >
-                        <Smile className="w-3 h-3" />
-                      </button>
-                      <span className="ml-2">
-                        {msg.status === "sending"
-                          ? "Sending..."
-                          : msg.status || "sent"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Emoji Picker */}
-                  {emojiPickerOpen === msg.id && (
-                    <div
-                      className={`emoji-picker absolute bottom-full mb-2 ${
-                        isMe ? "left-0" : "right-0"
-                      } bg-white border border-gray-200 rounded-xl p-3 shadow-xl z-10 w-64 max-h-48 overflow-y-auto`}
-                    >
-                      <div className="grid grid-cols-6 gap-2">
-                        {[
-                          "👍",
-                          "❤️",
-                          "😂",
-                          "😮",
-                          "😢",
-                          "😡",
-                          "🎉",
-                          "💐",
-                          "🔥",
-                          "👏",
-                          "🤔",
-                          "😴",
-                          "🙏",
-                          "😍",
-                          "🤗",
-                          "🤩",
-                          "🥳",
-                          "😎",
-                          "🤯",
-                          "😅",
-                          "😆",
-                          "😇",
-                          "🙂",
-                          "🙃",
-                          "😉",
-                          "😌",
-                          "😋",
-                          "😜",
-                          "🤪",
-                          "😝",
-                          "🤑",
-                          "🤠",
-                          "😏",
-                          "😒",
-                          "🙄",
-                          "😬",
-                          "🤥",
-                        ].map((emoji) => (
+                    {/* Reactions */}
+                    {msg.reactions && msg.reactions.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {Object.entries(
+                          msg.reactions.reduce(
+                            (acc, reaction) => {
+                              if (!acc[reaction.emoji]) {
+                                acc[reaction.emoji] = { count: 0, users: [] };
+                              }
+                              acc[reaction.emoji].count++;
+                              acc[reaction.emoji].users.push(reaction.user);
+                              return acc;
+                            },
+                            {} as Record<
+                              string,
+                              { count: number; users: string[] }
+                            >,
+                          ),
+                        ).map(([emoji, data]) => (
                           <button
                             key={emoji}
                             onClick={() => {
-                              handleAddReaction(msg.id, emoji);
-                              setEmojiPickerOpen(null);
+                              if (data.users.includes(currentUser?.id || "")) {
+                                handleRemoveReaction(msg.id, emoji);
+                              } else {
+                                handleAddReaction(msg.id, emoji);
+                              }
                             }}
-                            className="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-gray-100 active:scale-95 transition"
-                            title={`React with ${emoji}`}
+                            className={`px-2 py-1 rounded-full text-xs border transition-colors ${
+                              data.users.includes(currentUser?.id || "")
+                                ? "bg-blue-100 border-blue-300 text-blue-700"
+                                : "bg-gray-100 border-gray-300 hover:bg-gray-200"
+                            }`}
                           >
-                            {emoji}
+                            {emoji} {data.count}
                           </button>
                         ))}
                       </div>
+                    )}
+
+                    {/* Emoji Picker Toggle */}
+                    <div className="flex items-center justify-between text-[10px] mt-1 opacity-80">
+                      <span>{formatTime(msg.createdAt)}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() =>
+                            setEmojiPickerOpen(
+                              emojiPickerOpen === msg.id ? null : msg.id,
+                            )
+                          }
+                          className="p-1 hover:bg-gray-100/20 rounded transition-colors"
+                          title="Add reaction"
+                        >
+                          <Smile className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setMessageMenuOpen(
+                              messageMenuOpen === msg.id ? null : msg.id,
+                            )
+                          }
+                          className="p-1 hover:bg-gray-100/20 rounded transition-colors"
+                          title="More"
+                        >
+                          <MoreVertical className="w-3 h-3" />
+                        </button>
+                        <span className="ml-2">
+                          {msg.status === "sending"
+                            ? "Sending..."
+                            : msg.status || "sent"}
+                        </span>
+                      </div>
                     </div>
-                  )}
+
+                    {/* Emoji Picker */}
+                    {emojiPickerOpen === msg.id && (
+                      <div
+                        className={`emoji-picker absolute bottom-full mb-2 ${
+                          isMe ? "left-0" : "right-0"
+                        } bg-card border border-border rounded-xl p-3 shadow-xl z-10 w-64 max-h-48 overflow-y-auto`}
+                      >
+                        <div className="grid grid-cols-6 gap-2">
+                          {[
+                            "👍",
+                            "❤️",
+                            "😂",
+                            "😮",
+                            "😢",
+                            "😡",
+                            "🎉",
+                            "💐",
+                            "🔥",
+                            "👏",
+                            "🤔",
+                            "😴",
+                            "🙏",
+                            "😍",
+                            "🤗",
+                            "🤩",
+                            "🥳",
+                            "😎",
+                            "🤯",
+                            "😅",
+                            "😆",
+                            "😇",
+                            "🙂",
+                            "🙃",
+                            "😉",
+                            "😌",
+                            "😋",
+                            "😜",
+                            "🤪",
+                            "😝",
+                            "🤑",
+                            "🤠",
+                            "😏",
+                            "😒",
+                            "🙄",
+                            "😬",
+                            "🤥",
+                          ].map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => {
+                                handleAddReaction(msg.id, emoji);
+                                setEmojiPickerOpen(null);
+                              }}
+                              className="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-muted active:scale-95 transition"
+                              title={`React with ${emoji}`}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {messageMenuOpen === msg.id && (
+                      <div
+                        className={`message-menu absolute bottom-full mb-2 ${
+                          isMe ? "left-0" : "right-0"
+                        } bg-card border border-border rounded-xl p-2 shadow-xl z-10 w-40`}
+                      >
+                        {isMe && (
+                          <button
+                            onClick={() => {
+                              setEditMessageId(msg.id);
+                              setEditContent(msg.content || "");
+                              setEditOpen(true);
+                              setMessageMenuOpen(null);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm"
+                          >
+                            Edit
+                          </button>
+                        )}
+                        {isMe && (
+                          <button
+                            onClick={() => {
+                              deleteMessage({
+                                variables: { messageId: msg.id },
+                              });
+                              setMessageMenuOpen(null);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm text-red-600"
+                          >
+                            Delete
+                          </button>
+                        )}
+                        {!isMe && !msg.readBy.includes(currentUser?.id) && (
+                          <button
+                            onClick={() => {
+                              markMessageRead({
+                                variables: { messageId: msg.id },
+                              });
+                              setMessageMenuOpen(null);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm"
+                          >
+                            Mark as read
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </ScrollArea>
 
@@ -650,6 +866,37 @@ export default function ChatWindow({
           allUsers={allUsers}
         />
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit message</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              placeholder="Update message"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                if (!editMessageId) return;
+                const content = editContent.trim();
+                if (!content) return;
+                editMessage({
+                  variables: {
+                    input: { messageId: editMessageId, content },
+                  },
+                });
+              }}
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

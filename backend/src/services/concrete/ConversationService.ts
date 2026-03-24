@@ -55,4 +55,17 @@ async createConversation(data: any) {
   async removeAdmin(conversationId: string, userId: string) {
     return this.repo.removeAdmin(conversationId, userId);
   }
+
+  async editConversation(conversationId: string, name: string) {
+    return this.repo.update(conversationId, { name });
+  }
+
+  async deleteConversation(conversationId: string) {
+    await this.repo.delete(conversationId);
+    return conversationId;
+  }
+
+  async markConversationRead(conversationId: string, userId: string) {
+    return this.repo.resetUnreadCount(conversationId, userId);
+  }
 }

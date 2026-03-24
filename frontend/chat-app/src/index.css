@@ -114,6 +114,19 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+@layer utilities {
+  .chat-bg {
+    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+    background-repeat: repeat;
+    background-attachment: fixed;
+  }
+
+  .dark .chat-bg {
+    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+    filter: invert(1) hue-rotate(180deg) opacity(0.4);
+  }
+}
+    
 @layer base {
   * {
     @apply border-border outline-ring/50;

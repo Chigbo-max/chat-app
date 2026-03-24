@@ -8,4 +8,7 @@ export interface IConversationService {
   removeParticipant(conversationId: string, userId: string): Promise<any>;
   makeAdmin(conversationId: string, userId: string): Promise<any>;
   removeAdmin(conversationId: string, userId: string): Promise<any>;
+  editConversation(conversationId: string, name: string): Promise<any>;
+  deleteConversation(conversationId: string): Promise<string>;
+  markConversationRead(conversationId: string, userId: string): Promise<any>;
 }

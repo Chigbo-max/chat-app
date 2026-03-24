@@ -57,5 +57,8 @@ export const conversationSchema = gql`
     removeParticipant(conversationId: ID!, userId: ID!): Conversation!
     makeAdmin(conversationId: ID!, userId: ID!): Conversation!
     removeAdmin(conversationId: ID!, userId: ID!): Conversation!
+    editConversation(conversationId: ID!, name: String!): Conversation!
+    deleteConversation(conversationId: ID!): ID!
+    markConversationRead(conversationId: ID!): Conversation!
   }
 `;

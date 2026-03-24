@@ -118,6 +118,43 @@ export const conversationResolver: IResolvers = {
       return conversationService.removeAdmin(conversationId, userId);
     },
 
+    editConversation: async (_parent, { conversationId, name }, { token }) => {
+      if (!token) throw new Error("Authentication required");
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
+      const currentUserId = decoded.id;
+
+      const conversation = await conversationService.getConversationById(conversationId);
+      if (!conversation) throw new Error("Conversation not found");
+      if (!conversation.isGroup) throw new Error("Cannot edit non-group conversation name");
+      if (!conversation.admins.includes(currentUserId)) throw new Error("Only admins can edit conversation name");
+
+      return conversationService.editConversation(conversationId, name);
+    },
+
+    deleteConversation: async (_parent, { conversationId }, { token }) => {
+      if (!token) throw new Error("Authentication required");
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
+      const currentUserId = decoded.id;
+
+      const conversation = await conversationService.getConversationById(conversationId);
+      if (!conversation) throw new Error("Conversation not found");
+      
+      // For groups, only admins can delete. For 1-1, either participant can "delete" (usually it just hides it for them, but here we delete it for everyone for simplicity if requested)
+      if (conversation.isGroup && !conversation.admins.includes(currentUserId)) {
+        throw new Error("Only admins can delete this group chat");
+      }
+
+      return conversationService.deleteConversation(conversationId);
+    },
+
+    markConversationRead: async (_parent, { conversationId }, { token }) => {
+      if (!token) throw new Error("Authentication required");
+      const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
+      const currentUserId = decoded.id;
+
+      return conversationService.markConversationRead(conversationId, currentUserId);
+    },
+
     deleteMessage: async (_parent, { messageId }, { token }) => {
       if (!token) throw new Error("Authentication required");
       const decoded: any = jwt.verify(token, process.env.JWT_SECRET!);
