@@ -91,10 +91,12 @@
     background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
     background-repeat: repeat;
     background-attachment: fixed;
+    opacity: 0.15; /* Increased opacity for light mode */
   }
 
   .dark .chat-bg {
     background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-    filter: invert(1) hue-rotate(180deg) opacity(0.4);
+    filter: invert(1) hue-rotate(180deg) brightness(1.5);
+    opacity: 0.1; /* Made visible in dark mode */
   }
 }
