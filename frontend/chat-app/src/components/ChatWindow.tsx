@@ -549,10 +549,22 @@ export default function ChatWindow({
     });
   };
 
-  const selectedName =
-    conversationData?.getConversation?.name ||
-    data?.getMessages?.messages[0]?.sender?.username ||
-    "Chat";
+  const selectedName = useMemo(() => {
+    if (isGroup) return conversationData?.getConversation?.name || "Group Chat";
+    
+    // For 1-1 chats, find the other participant
+    const otherParticipant = participants.find((p) => p.id !== currentUser?.id);
+    return otherParticipant?.username || "Chat";
+  }, [isGroup, conversationData, participants, currentUser]);
+
+  const otherParticipantStatus = useMemo(() => {
+    if (isGroup || !conversationId) return "";
+    
+    // For 1-1, find the other participant's status
+    // Note: We might need to fetch the actual status from the user data if it's not in the conversation object
+    // For now, let's assume "Online" or "Offline" based on basic presence if available
+    return "Online"; // Placeholder - would ideally come from presence subscription
+  }, [isGroup, conversationId]);
 
   return (
     <div className="flex-1 flex flex-col bg-background">
@@ -567,7 +579,7 @@ export default function ChatWindow({
             {conversationId
               ? isGroup
                 ? `${participants.length} members${isCurrentUserAdmin ? " • Admin" : ""}`
-                : "Online"
+                : otherParticipantStatus
               : "Select a conversation"}
           </p>
         </div>
@@ -718,7 +730,7 @@ export default function ChatWindow({
                     {/* Emoji Picker */}
                     {emojiPickerOpen === msg.id && (
                       <div
-                        className={`emoji-picker absolute bottom-full mb-2 ${
+                        className={`emoji-picker absolute top-full mt-2 ${
                           isMe ? "left-0" : "right-0"
                         } bg-card border border-border rounded-xl p-3 shadow-xl z-10 w-64 max-h-48 overflow-y-auto`}
                       >
@@ -782,7 +794,7 @@ export default function ChatWindow({
                       <div
                         className={`message-menu absolute bottom-full mb-2 ${
                           isMe ? "left-0" : "right-0"
-                        } bg-card border border-border rounded-xl p-2 shadow-xl z-10 w-40`}
+                        } bg-card border border-border rounded-xl p-2 shadow-xl z-10 w-40 opacity-100 backdrop-blur-none`}
                       >
                         {isMe && (
                           <button
@@ -792,7 +804,7 @@ export default function ChatWindow({
                               setEditOpen(true);
                               setMessageMenuOpen(null);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm"
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm bg-card"
                           >
                             Edit
                           </button>
@@ -805,7 +817,7 @@ export default function ChatWindow({
                               });
                               setMessageMenuOpen(null);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm text-red-600"
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm text-red-600 bg-card"
                           >
                             Delete
                           </button>
@@ -818,7 +830,7 @@ export default function ChatWindow({
                               });
                               setMessageMenuOpen(null);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm"
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm bg-card"
                           >
                             Mark as read
                           </button>
