@@ -392,7 +392,9 @@ export default function ChatWindow({
             data: { getMessages: { ...existing.getMessages, messages } },
           });
         }
-      } catch {}
+      } catch {
+        return "";
+      }
     },
     onCompleted() {
       setEditOpen(false);
@@ -428,7 +430,9 @@ export default function ChatWindow({
             data: { getMessages: { ...existing.getMessages, messages } },
           });
         }
-      } catch {}
+      } catch {
+        return "";
+      }
     },
   });
 
@@ -460,7 +464,9 @@ export default function ChatWindow({
             data: { getMessages: { ...existing.getMessages, messages } },
           });
         }
-      } catch {}
+      } catch {
+        return "";
+}
     },
   });
 
