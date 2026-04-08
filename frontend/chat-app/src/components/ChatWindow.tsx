@@ -646,7 +646,7 @@ export default function ChatWindow({
                     )}
                     
                     <div className="flex flex-wrap items-end gap-x-2 px-0.5">
-                      <p className="text-[14.2px] leading-normal break-words whitespace-pre-wrap flex-1 min-w-[60px]">
+                      <p className="text-[14.2px] leading-normal wrap-break-word whitespace-pre-wrap flex-1 min-w-[60px]">
                         {msg.content && msg.content.trim().length > 0
                           ? msg.content
                           : "[message deleted]"}
@@ -849,7 +849,7 @@ export default function ChatWindow({
           type="submit"
           disabled={!conversationId || isSending || !text.trim()}
           size="icon"
-          className="h-10 w-10 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white shrink-0 shadow-sm"
+          className="h-10 w-10 rounded-full bg-wa-green hover:bg-[#008f6f] text-white shrink-0 shadow-sm"
         >
           <Send className="h-5 w-5" />
         </Button>
