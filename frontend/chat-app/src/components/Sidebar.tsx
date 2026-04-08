@@ -274,49 +274,63 @@ export default function Sidebar({
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <div className="w-80 border-r flex flex-col bg-card">
+    <div className="w-[30%] min-w-[320px] max-w-[450px] border-r flex flex-col bg-white dark:bg-[#111b21] h-full overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Chats</h2>
-        <div className="flex gap-2">
+      <div className="p-3 bg-[#f0f2f5] dark:bg-[#202c33] flex items-center justify-between z-10">
+        <Avatar className="h-10 w-10">
+          <AvatarFallback className="bg-muted text-muted-foreground">
+            {currentUser?.username?.[0] || "U"}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex gap-1">
           <Button
-            size="sm"
-            variant="outline"
+            size="icon"
+            variant="ghost"
             onClick={toggleTheme}
-            className="h-8 w-8 p-0"
+            className="h-10 w-10 rounded-full text-muted-foreground hover:bg-muted/50"
           >
-            {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            {theme === "light" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </Button>
           <Button
-            size="sm"
-            variant="outline"
+            size="icon"
+            variant="ghost"
             onClick={() => setIsGroupModalOpen(true)}
+            className="h-10 w-10 rounded-full text-muted-foreground hover:bg-muted/50"
           >
-            New Group
+            <Settings className="h-5 w-5" />
           </Button>
-          <Button size="sm" variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4" />
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={handleLogout}
+            className="h-10 w-10 rounded-full text-muted-foreground hover:bg-muted/50"
+          >
+            <LogOut className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b">
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search..."
-        />
+      <div className="p-2 border-b bg-white dark:bg-[#111b21]">
+        <div className="relative flex items-center bg-[#f0f2f5] dark:bg-[#202c33] rounded-lg px-3 py-1.5 shadow-sm">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search or start new chat"
+            className="border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-[14px] h-8 p-0"
+          />
+        </div>
       </div>
 
       {/* Conversations List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 bg-white dark:bg-[#111b21]">
         <div className="flex flex-col">
           {/* ✅ Loading & Error */}
           {loading && (
-            <p className="p-4 text-sm text-muted-foreground">
-              Loading...
-            </p>
+            <div className="flex justify-center p-6">
+              <p className="text-sm text-muted-foreground">Loading chats...</p>
+            </div>
           )}
 
           {error && (
@@ -333,37 +347,38 @@ export default function Sidebar({
             const isMeAdmin = conv.admins?.includes(currentUser?.id);
 
             return (
-              <div key={conv.id} className="relative group">
+              <div key={conv.id} className="relative group border-b border-muted/30">
                 <button
                   onClick={() => onSelectConversation(conv.id)}
-                  className={`w-full p-3 hover:bg-muted text-left border-b transition flex items-center gap-3 ${
-                    isSelected ? "bg-muted" : ""
+                  className={`w-full px-4 py-3 hover:bg-[#f5f6f6] dark:hover:bg-[#2a3942] text-left transition flex items-center gap-3 ${
+                    isSelected ? "bg-[#f0f2f5] dark:bg-[#2a3942]" : ""
                   }`}
                 >
-                  <Avatar>
-                    <AvatarFallback>{conv.name?.[0] || "C"}</AvatarFallback>
+                  <Avatar className="h-12 w-12 shrink-0">
+                    <AvatarFallback className="bg-muted text-muted-foreground text-lg">
+                      {conv.name?.[0] || "C"}
+                    </AvatarFallback>
                   </Avatar>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium truncate">{conv.name}</span>
+                  <div className="flex-1 min-w-0 border-none">
+                    <div className="flex justify-between items-center mb-0.5">
+                      <span className="font-semibold text-[15.5px] text-[#111b21] dark:text-[#e9edef] truncate">
+                        {conv.name}
+                      </span>
 
-                      <span className="text-xs text-muted-foreground">
+                      <span className={`text-[12px] ${unreadCount > 0 ? "text-[#00a884] font-semibold" : "text-muted-foreground"}`}>
                         {conv.lastMessageAt
-                          ? new Date(conv.lastMessageAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                          ? formatTime(conv.lastMessageAt)
                           : ""}
                       </span>
                     </div>
 
                     <div className="flex justify-between items-center">
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="text-[13.5px] text-muted-foreground truncate flex-1">
                         {lastMessage}
                       </p>
                       {unreadCount > 0 && (
-                        <div className="bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] flex items-center justify-center">
+                        <div className="bg-[#00a884] text-white text-[11px] font-bold px-1.5 py-0.5 rounded-full min-w-[19px] h-[19px] flex items-center justify-center ml-2 shadow-sm">
                           {unreadCount}
                         </div>
                       )}
@@ -376,13 +391,13 @@ export default function Sidebar({
                     e.stopPropagation();
                     setConvMenuOpen(convMenuOpen === conv.id ? null : conv.id);
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/5 dark:hover:bg-white/5"
                 >
                   <MoreVertical className="w-4 h-4 text-muted-foreground" />
                 </button>
 
                 {convMenuOpen === conv.id && (
-                  <div className="conv-menu absolute right-8 top-1/2 -translate-y-1/2 bg-card border border-border rounded-xl p-2 shadow-xl z-20 w-40">
+                  <div className="conv-menu absolute right-10 top-1/2 -translate-y-1/2 bg-card border border-border rounded-lg p-1 shadow-2xl z-20 w-44 overflow-hidden">
                     {conv.isGroup && isMeAdmin && (
                       <button
                         onClick={() => {
@@ -391,9 +406,9 @@ export default function Sidebar({
                           setIsEditModalOpen(true);
                           setConvMenuOpen(null);
                         }}
-                        className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm"
+                        className="w-full text-left px-3 py-2 hover:bg-muted rounded text-[13.5px] transition-colors"
                       >
-                        Edit Group
+                        Edit Group Info
                       </button>
                     )}
                     <button
@@ -403,7 +418,7 @@ export default function Sidebar({
                         });
                         setConvMenuOpen(null);
                       }}
-                      className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm text-red-600"
+                      className="w-full text-left px-3 py-2 hover:bg-muted rounded text-[13.5px] text-red-500 transition-colors"
                     >
                       Delete Chat
                     </button>
@@ -415,7 +430,7 @@ export default function Sidebar({
                           });
                           setConvMenuOpen(null);
                         }}
-                        className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm"
+                        className="w-full text-left px-3 py-2 hover:bg-muted rounded text-[13.5px] transition-colors"
                       >
                         Mark as read
                       </button>
@@ -427,28 +442,33 @@ export default function Sidebar({
           })}
 
           {/* ✅ Other Users (without conversations) */}
-          {usersWithoutConversation.map((user: Participant) => (
-            <button
-              key={user.id}
-              onClick={() => handleSelectUser(user.id)}
-              className="p-3 hover:bg-muted text-left border-b transition"
-            >
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarFallback>
-                    {user.username[0]}
-                  </AvatarFallback>
-                </Avatar>
+          {usersWithoutConversation.length > 0 && (
+            <div className="p-4">
+              <p className="text-[12.5px] font-bold text-[#00a884] uppercase tracking-wider mb-2">
+                Contacts
+              </p>
+              {usersWithoutConversation.map((user: Participant) => (
+                <button
+                  key={user.id}
+                  onClick={() => handleSelectUser(user.id)}
+                  className="w-full py-2.5 flex items-center gap-3 hover:bg-[#f5f6f6] dark:hover:bg-[#2a3942] rounded-lg transition px-2"
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-muted text-muted-foreground">
+                      {user.username[0]}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <div>
-                  <p className="font-medium">{user.username}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Start chat
-                  </p>
-                </div>
-              </div>
-            </button>
-          ))}
+                  <div className="text-left">
+                    <p className="font-semibold text-[14.5px] text-[#111b21] dark:text-[#e9edef]">{user.username}</p>
+                    <p className="text-[12.5px] text-muted-foreground">
+                      Start chatting
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </ScrollArea>
 

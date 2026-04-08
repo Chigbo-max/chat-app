@@ -28,20 +28,31 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) * 1.4);
   --radius-2xl: calc(var(--radius) * 1.8);
+  
+  /* Custom WhatsApp Colors */
+  --color-wa-light-bg: #efeae2;
+  --color-wa-dark-bg: #0b141a;
+  --color-wa-light-out: #dcf8c6;
+  --color-wa-dark-out: #005c4b;
+  --color-wa-light-in: #ffffff;
+  --color-wa-dark-in: #202c33;
+  --color-wa-header: #f0f2f5;
+  --color-wa-header-dark: #202c33;
+  --color-wa-green: #00a884;
 }
 
 :root {
-  --background: 0 0% 100%;
+  --background: 37 24% 91%; /* WA Light BG */
   --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
+  --card: 210 14% 95%; /* WA Light Header */
   --card-foreground: 222.2 84% 4.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 222.2 84% 4.9%;
-  --primary: 221.2 83.2% 53.3%;
+  --primary: 167 100% 33%; /* WA Green */
   --primary-foreground: 210 40% 98%;
   --secondary: 210 40% 96.1%;
   --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
+  --muted: 210 14% 90%;
   --muted-foreground: 215.4 16.3% 46.9%;
   --accent: 210 40% 96.1%;
   --accent-foreground: 222.2 47.4% 11.2%;
@@ -49,30 +60,30 @@
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
+  --ring: 167 100% 33%;
   --radius: 0.5rem;
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
+  --background: 204 31% 7%; /* WA Dark BG */
   --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
+  --card: 203 23% 16%; /* WA Dark Header */
   --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
+  --popover: 203 23% 16%;
   --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  --primary: 167 100% 33%; /* WA Green */
+  --primary-foreground: 210 40% 98%;
   --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
+  --muted: 203 23% 20%;
   --muted-foreground: 215 20.2% 65.1%;
   --accent: 217.2 32.6% 17.5%;
   --accent-foreground: 210 40% 98%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
+  --border: 203 23% 20%;
+  --input: 203 23% 20%;
+  --ring: 167 100% 33%;
 }
 
 @layer base {
@@ -88,15 +99,27 @@
 
 @layer utilities {
   .chat-bg {
-    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-    background-repeat: repeat;
-    background-attachment: fixed;
-    opacity: 0.15; /* Increased opacity for light mode */
+    position: relative;
+    background-color: hsl(var(--background));
   }
 
-  .dark .chat-bg {
+  .chat-bg::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-    filter: invert(1) hue-rotate(180deg) brightness(1.5);
-    opacity: 0.1; /* Made visible in dark mode */
+    background-repeat: repeat;
+    background-attachment: local;
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dark .chat-bg::before {
+    filter: invert(1) brightness(0.5);
+    opacity: 0.05;
   }
 }
