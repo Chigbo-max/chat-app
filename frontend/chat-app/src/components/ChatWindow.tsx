@@ -466,7 +466,7 @@ export default function ChatWindow({
         }
       } catch {
         return "";
-      }
+}
     },
   });
 
