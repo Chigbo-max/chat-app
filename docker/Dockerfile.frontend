@@ -1,17 +1,14 @@
-FROM node:20 AS frontend
+FROM node:20 AS builder
 
-WORDIR /app/frontend
-
-COPY ./frontend/chat-app/ ./
-
-ENV ROLLUP_NO_BINARY=true
-
-RUN rm -rf package-lock.json node_modules
-RUN npm cache clean --force
-
-COPY frontend/chat-app/package.json ./
-COPY frontend/chat-app/package-lock.json ./
-
+WORKDIR /app
+COPY frontend/chat-app/package*.json ./
 RUN npm install --legacy-peer-deps
 
+COPY frontend/chat-app/ ./
 RUN npm run build
+
+FROM nginx:stable-alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

@@ -573,111 +573,95 @@ export default function ChatWindow({
   }, [isGroup, conversationId]);
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
+    <div className="flex-1 flex flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b bg-card z-10 shadow-sm">
-        <Avatar className="h-10 w-10">
-          <AvatarFallback className="bg-muted text-muted-foreground text-lg">
-            {selectedName?.[0] || "C"}
-          </AvatarFallback>
+      <div className="flex items-center gap-3 p-4 border-b bg-card">
+        <Avatar>
+          <AvatarFallback>{selectedName?.[0] || "C"}</AvatarFallback>
         </Avatar>
-        <div className="flex-1 min-w-0">
-          <p className="font-bold text-[15px] leading-tight truncate">
-            {selectedName}
-          </p>
-          <p className="text-[12px] text-muted-foreground leading-tight truncate">
+        <div className="flex-1">
+          <p className="font-semibold">{selectedName}</p>
+          <p className="text-xs text-muted-foreground">
             {conversationId
               ? isGroup
-                ? `${participants.length} members`
+                ? `${participants.length} members${isCurrentUserAdmin ? " • Admin" : ""}`
                 : otherParticipantStatus
               : "Select a conversation"}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Settings Button for Groups */}
-          {isGroup && isCurrentUserAdmin && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsGroupManagementOpen(true)}
-              className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted/50"
-            >
-              <Settings className="h-5 w-5" />
-            </Button>
-          )}
+        {/* Group Participants */}
+        {isGroup && participants.length > 0 && (
+          <div className="flex -space-x-2">
+            {participants.slice(0, 3).map((participant) => (
+              <Avatar
+                key={participant.id}
+                className="w-8 h-8 border-2 border-background"
+              >
+                <AvatarFallback className="text-xs">
+                  {participant.username[0]}
+                </AvatarFallback>
+              </Avatar>
+            ))}
+            {participants.length > 3 && (
+              <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-xs">
+                +{participants.length - 3}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Settings Button for Groups */}
+        {isGroup && isCurrentUserAdmin && (
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted/50"
+            size="sm"
+            onClick={() => setIsGroupManagementOpen(true)}
+            className="h-8 w-8 p-0"
           >
-            <MoreVertical className="h-5 w-5" />
+            <Settings className="h-4 w-4" />
           </Button>
-        </div>
+        )}
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 chat-bg relative">
-        <div className="relative p-4 md:px-10 lg:px-20 min-h-full flex flex-col justify-end">
+      <ScrollArea className="flex-1 overflow-y-auto chat-bg relative">
+        <div className="absolute inset-0 bg-background/50 dark:bg-background/80 pointer-events-none" />
+        <div className="relative p-4">
           {loading && (
-            <div className="flex justify-center p-4">
-              <p className="text-[13px] bg-card px-3 py-1 rounded-md shadow-sm text-muted-foreground">
-                Loading messages...
-              </p>
-            </div>
+            <p className="text-muted-foreground">Loading messages...</p>
           )}
-          
-          <div className="flex flex-col gap-1">
-            {messages.map((msg, index) => {
+          {error && <p className="text-destructive">{error.message}</p>}
+
+          <div className="flex flex-col gap-2">
+            {messages.map((msg) => {
               const isMe = msg.sender?.id === currentUser?.id;
-              const prevMsg = index > 0 ? messages[index - 1] : null;
-              const isSameSender = prevMsg?.sender?.id === msg.sender?.id;
 
               return (
                 <div
                   key={msg.id}
-                  className={`flex w-full mb-0.5 ${isMe ? "justify-end" : "justify-start"}`}
+                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`relative max-w-[85%] sm:max-w-[70%] px-2.5 py-1.5 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] transition-all ${
+                    className={`relative max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-md transition-colors ${
                       isMe
-                        ? "bg-[#dcf8c6] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-lg rounded-tr-none"
-                        : "bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-lg rounded-tl-none"
-                    } ${!isSameSender ? "mt-2" : "mt-0"}`}
+                        ? "bg-slate-900 text-white dark:bg-white dark:text-black rounded-tr-none"
+                        : "bg-slate-800 text-white dark:bg-slate-200 dark:text-black rounded-tl-none"
+                    }`}
                   >
-                    {!isMe && isGroup && !isSameSender && (
-                      <p className="text-[12.5px] font-bold text-primary mb-0.5 px-0.5">
-                        {msg.sender?.username}
-                      </p>
+                    <p className="font-medium">
+                      {msg.content && msg.content.trim().length > 0
+                        ? msg.content
+                        : "[message deleted]"}
+                    </p>
+                    {msg.edited && (
+                      <span className="mt-1 text-[10px] opacity-60 italic block">
+                        edited
+                      </span>
                     )}
-                    
-                    <div className="flex flex-wrap items-end gap-x-2 px-0.5">
-                      <p className="text-[14.2px] leading-normal wrap-break-word whitespace-pre-wrap flex-1 min-w-[60px]">
-                        {msg.content && msg.content.trim().length > 0
-                          ? msg.content
-                          : "[message deleted]"}
-                      </p>
-                      
-                      <div className="flex items-center gap-1 self-end mb-[-2px]">
-                        {msg.edited && (
-                          <span className="text-[10px] opacity-60 italic">
-                            edited
-                          </span>
-                        )}
-                        <span className="text-[11px] opacity-60 font-normal min-w-max">
-                          {formatTime(msg.createdAt)}
-                        </span>
-                        {isMe && (
-                          <span className="text-[14px] leading-none opacity-60 text-blue-400">
-                            {msg.status === "sending" ? "..." : "✓✓"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
 
                     {/* Reactions */}
                     {msg.reactions && msg.reactions.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5 px-0.5">
+                      <div className="flex flex-wrap gap-1 mt-2">
                         {Object.entries(
                           msg.reactions.reduce(
                             (acc, reaction) => {
@@ -703,10 +687,10 @@ export default function ChatWindow({
                                 handleAddReaction(msg.id, emoji);
                               }
                             }}
-                            className={`px-1.5 py-0.5 rounded-full text-[11px] border bg-white/20 dark:bg-black/20 transition-colors ${
+                            className={`px-2 py-1 rounded-full text-[11px] border transition-colors ${
                               data.users.includes(currentUser?.id || "")
-                                ? "border-primary/50 text-primary font-bold"
-                                : "border-transparent hover:bg-black/10"
+                                ? "bg-primary/20 border-primary text-primary"
+                                : "bg-muted/30 border-border hover:bg-muted"
                             }`}
                           >
                             {emoji} {data.count}
@@ -715,44 +699,86 @@ export default function ChatWindow({
                       </div>
                     )}
 
-                    {/* Options Toggle - Only show on hover or click */}
-                    <div className="absolute top-1 right-1 opacity-0 hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                      <button
-                        onClick={() =>
-                          setMessageMenuOpen(
-                            messageMenuOpen === msg.id ? null : msg.id,
-                          )
-                        }
-                        className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                      >
-                        <MoreVertical className="w-3.5 h-3.5 opacity-50" />
-                      </button>
+                    {/* Emoji Picker Toggle */}
+                    <div className="flex items-center justify-between text-[10px] mt-2 opacity-70">
+                      <span>{formatTime(msg.createdAt)}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() =>
+                            setEmojiPickerOpen(
+                              emojiPickerOpen === msg.id ? null : msg.id,
+                            )
+                          }
+                          className="p-1 hover:bg-black/10 dark:hover:bg-black/5 rounded transition-colors"
+                          title="Add reaction"
+                        >
+                          <Smile className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            setMessageMenuOpen(
+                              messageMenuOpen === msg.id ? null : msg.id,
+                            )
+                          }
+                          className="p-1 hover:bg-black/10 dark:hover:bg-black/5 rounded transition-colors"
+                          title="More"
+                        >
+                          <MoreVertical className="w-3 h-3" />
+                        </button>
+                        <span className="ml-2 font-medium">
+                          {msg.status === "sending"
+                            ? "Sending..."
+                            : msg.status || "sent"}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Emoji Picker Button - Only visible when menu open or hovered */}
-                    <button
-                      onClick={() =>
-                        setEmojiPickerOpen(
-                          emojiPickerOpen === msg.id ? null : msg.id,
-                        )
-                      }
-                      className="absolute top-1 right-6 opacity-0 hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5"
-                    >
-                      <Smile className="w-3.5 h-3.5 opacity-50" />
-                    </button>
-
-                    {/* Emoji Picker Downwards */}
+                    {/* Emoji Picker */}
                     {emojiPickerOpen === msg.id && (
                       <div
-                        className={`emoji-picker absolute top-full mt-1 ${
-                          isMe ? "right-0" : "left-0"
-                        } bg-card border border-border rounded-lg p-2 shadow-xl z-20 w-64 max-h-48 overflow-y-auto`}
+                        className={`emoji-picker absolute top-full mt-2 ${
+                          isMe ? "left-0" : "right-0"
+                        } bg-card border border-border rounded-xl p-3 shadow-xl z-10 w-64 max-h-48 overflow-y-auto`}
                       >
-                        <div className="grid grid-cols-6 gap-1.5">
+                        <div className="grid grid-cols-6 gap-2">
                           {[
-                            "👍", "❤️", "😂", "😮", "😢", "😡",
-                            "🎉", "🔥", "👏", "🙏", "😍", "😎",
-                            "😅", "😆", "😇", "🙂", "", "😌",
+                            "👍",
+                            "❤️",
+                            "😂",
+                            "😮",
+                            "😢",
+                            "😡",
+                            "🎉",
+                            "💐",
+                            "🔥",
+                            "👏",
+                            "🤔",
+                            "😴",
+                            "🙏",
+                            "😍",
+                            "🤗",
+                            "🤩",
+                            "🥳",
+                            "😎",
+                            "🤯",
+                            "😅",
+                            "😆",
+                            "😇",
+                            "🙂",
+                            "🙃",
+                            "😉",
+                            "😌",
+                            "😋",
+                            "😜",
+                            "🤪",
+                            "😝",
+                            "🤑",
+                            "🤠",
+                            "😏",
+                            "😒",
+                            "🙄",
+                            "😬",
+                            "🤥",
                           ].map((emoji) => (
                             <button
                               key={emoji}
@@ -760,7 +786,8 @@ export default function ChatWindow({
                                 handleAddReaction(msg.id, emoji);
                                 setEmojiPickerOpen(null);
                               }}
-                              className="w-8 h-8 flex items-center justify-center rounded hover:bg-muted active:scale-95 transition text-lg"
+                              className="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-muted active:scale-95 transition"
+                              title={`React with ${emoji}`}
                             >
                               {emoji}
                             </button>
@@ -769,12 +796,11 @@ export default function ChatWindow({
                       </div>
                     )}
 
-                    {/* Message Options Menu */}
                     {messageMenuOpen === msg.id && (
                       <div
-                        className={`message-menu absolute top-full mt-1 ${
-                          isMe ? "right-0" : "left-0"
-                        } bg-card border border-border rounded-md py-1 shadow-xl z-20 w-36 overflow-hidden`}
+                        className={`message-menu absolute bottom-full mb-2 ${
+                          isMe ? "left-0" : "right-0"
+                        } bg-card border border-border rounded-xl p-2 shadow-xl z-10 w-40 opacity-100 backdrop-blur-none`}
                       >
                         {isMe && (
                           <button
@@ -784,7 +810,7 @@ export default function ChatWindow({
                               setEditOpen(true);
                               setMessageMenuOpen(null);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-muted text-[13px] transition-colors"
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm bg-card"
                           >
                             Edit
                           </button>
@@ -797,7 +823,7 @@ export default function ChatWindow({
                               });
                               setMessageMenuOpen(null);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-muted text-[13px] text-red-500 transition-colors"
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm text-red-600 bg-card"
                           >
                             Delete
                           </button>
@@ -810,7 +836,7 @@ export default function ChatWindow({
                               });
                               setMessageMenuOpen(null);
                             }}
-                            className="w-full text-left px-3 py-2 hover:bg-muted text-[13px] transition-colors"
+                            className="w-full text-left px-3 py-2 hover:bg-muted rounded text-sm bg-card"
                           >
                             Mark as read
                           </button>
@@ -828,36 +854,25 @@ export default function ChatWindow({
       {/* Input */}
       <form
         onSubmit={handleSend}
-        className="px-4 py-2 bg-[#f0f2f5] dark:bg-[#202c33] flex gap-2 items-center z-10"
+        className="p-3 border-t bg-card flex gap-2 items-center"
       >
-        <div className="flex gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="rounded-full text-muted-foreground h-10 w-10"
-          >
-            <Smile className="h-6 w-6" />
-          </Button>
-        </div>
-        
-        <div className="flex-1 bg-white dark:bg-[#2a3942] rounded-lg px-3 py-1 shadow-sm">
-          <Input
-            placeholder="Type a message"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            disabled={!conversationId}
-            className="border-none bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 text-[15px] h-9 p-0"
-          />
-        </div>
+        <Input
+          placeholder={
+            conversationId
+              ? "Type a message..."
+              : "Select a chat to send messages"
+          }
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          disabled={!conversationId}
+        />
 
         <Button
           type="submit"
           disabled={!conversationId || isSending || !text.trim()}
-          size="icon"
-          className="h-10 w-10 rounded-full bg-wa-green hover:bg-[#008f6f] text-white shrink-0 shadow-sm"
         >
-          <Send className="h-5 w-5" />
+          <Send className="mr-1 h-4 w-4" />
+          {isSending ? "Sending..." : "Send"}
         </Button>
       </form>
 

@@ -1,27 +1,18 @@
-FROM node:20
+FROM node:20 AS builder
 
 WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm cache clean --force
-
+COPY backend/package*.json ./
 RUN npm install
 
-COPY . .
+COPY backend/ ./
+RUN npm run build
+
+FROM node:20-slim
+WORKDIR /app
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
 
 ENV NODE_ENV=production
-
-ENV MONGO_URI=""
-ENV REDIS_HOST=""
-ENV REDIS_PORT=""
-ENV CLOUDINARY_CLOUD_NAME=""
-ENV CLOUDINARY_API_KEY=""
-ENV CLOUDINARY_API_SECRET=""
-ENV JWT_SECRET=""
-ENV GOOGLE_CLIENT_ID=""
-
-
 EXPOSE 4000
-
 CMD ["npm", "start"]
