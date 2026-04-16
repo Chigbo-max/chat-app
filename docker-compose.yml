@@ -10,15 +10,7 @@ services:
     environment:
       NODE_ENV: production
       MONGO_URI: ${MONGO_URI}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT}
-      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
-      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
-      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
       JWT_SECRET: ${JWT_SECRET}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-    depends_on:
-      - redis
 
   frontend:
     build:
@@ -29,8 +21,6 @@ services:
     depends_on:
       - backend
 
-  redis:
-    image: redis:7
     ports:
       - '6379:6379'
     restart: unless-stopped
