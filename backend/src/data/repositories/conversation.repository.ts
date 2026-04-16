@@ -4,13 +4,21 @@ import { Types } from "mongoose";
 export class ConversationRepository {
 
   async create(data: any) {
-    return Conversation.create(data);
+    const conversation = await Conversation.create(data);
+    return conversation.populate("participants");
+
   }
 
   async findById(id: string) {
     return Conversation.findById(id)
       .populate("participants")
-      .populate("lastMessage");
+      .populate({
+        path: "lastMessage",
+        populate: {
+          path: "sender",
+          model: "User"
+        }
+      });
   }
 
   // Cursor pagination for conversations
@@ -29,7 +37,13 @@ export class ConversationRepository {
 
     const conversations = await Conversation.find(query)
       .populate("participants")
-      .populate("lastMessage")
+      .populate({
+        path: "lastMessage",
+        populate: {
+          path: "sender",
+          model: "User"
+        }
+      })
       .sort({ lastMessageAt: -1 })
       .limit(limit + 1);
 
@@ -96,23 +110,66 @@ export class ConversationRepository {
   }
 
   async addParticipant(conversationId: string, userId: string) {
-    return Conversation.findByIdAndUpdate(
+    await Conversation.findByIdAndUpdate(
       conversationId,
       {
         $addToSet: { participants: new Types.ObjectId(userId) }
       },
       { new: true }
     );
+    return this.findById(conversationId);
   }
 
   async removeParticipant(conversationId: string, userId: string) {
-    return Conversation.findByIdAndUpdate(
+    await Conversation.findByIdAndUpdate(
       conversationId,
       {
         $pull: { participants: new Types.ObjectId(userId) }
       },
       { new: true }
     );
+    return this.findById(conversationId);
+  }
+
+  async addAdmin(conversationId: string, userId: string) {
+    await Conversation.findByIdAndUpdate(
+      conversationId,
+      {
+        $addToSet: { admins: new Types.ObjectId(userId) }
+      },
+      { new: true }
+    );
+    return this.findById(conversationId);
+  }
+
+  async removeAdmin(conversationId: string, userId: string) {
+    await Conversation.findByIdAndUpdate(
+      conversationId,
+      {
+        $pull: { admins: new Types.ObjectId(userId) }
+      },
+      { new: true }
+    );
+    return this.findById(conversationId);
+  }
+
+  async findOneOnOneConversation(user1: string, user2: string) {
+    return Conversation.findOne({
+      isGroup: false,
+      participants: { $all: [user1, user2], $size: 2 },
+    });
+  }
+
+  async findOne(filter: any) {
+  return Conversation.findOne(filter);
+}
+
+  async update(id: string, data: any) {
+    return Conversation.findByIdAndUpdate(id, data, { new: true }).populate("participants");
+  }
+
+  async delete(id: string) {
+    return Conversation.findByIdAndDelete(id);
   }
 
 }

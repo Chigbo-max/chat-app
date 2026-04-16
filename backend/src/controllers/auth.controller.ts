@@ -1,13 +1,16 @@
 import { Request, Response } from "express";
-import { AuthService } from "../services/concrete/AuthService";
+import { IAuthService } from "../services/interfaces/IAuthService";
 
-const authService = new AuthService();
 
 export class AuthController {
 
+  constructor(private authService: IAuthService) {}
+
+
+  
   async register(req: Request, res: Response) {
     try {
-      const result = await authService.register(req.body);
+      const result = await this.authService.register(req.body);
 
       return res.status(201).json({
         success: true,
@@ -24,7 +27,7 @@ export class AuthController {
 
   async login(req: Request, res: Response) {
     try {
-      const result = await authService.login(req.body);
+      const result = await this.authService.login(req.body);
 
       return res.json({
         success: true,

@@ -1,0 +1,125 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --font-sans: 'Geist Variable', sans-serif;
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  
+  /* Custom WhatsApp Colors */
+  --color-wa-light-bg: #efeae2;
+  --color-wa-dark-bg: #0b141a;
+  --color-wa-light-out: #dcf8c6;
+  --color-wa-dark-out: #005c4b;
+  --color-wa-light-in: #ffffff;
+  --color-wa-dark-in: #202c33;
+  --color-wa-header: #f0f2f5;
+  --color-wa-header-dark: #202c33;
+  --color-wa-green: #00a884;
+}
+
+:root {
+  --background: 37 24% 91%; /* WA Light BG */
+  --foreground: 222.2 84% 4.9%;
+  --card: 210 14% 95%; /* WA Light Header */
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
+  --primary: 167 100% 33%; /* WA Green */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 210 14% 90%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 210 40% 96.1%;
+  --accent-foreground: 222.2 47.4% 11.2%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 167 100% 33%;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: 204 31% 7%; /* WA Dark BG */
+  --foreground: 210 40% 98%;
+  --card: 203 23% 16%; /* WA Dark Header */
+  --card-foreground: 210 40% 98%;
+  --popover: 203 23% 16%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 167 100% 33%; /* WA Green */
+  --primary-foreground: 210 40% 98%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 203 23% 20%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 203 23% 20%;
+  --input: 203 23% 20%;
+  --ring: 167 100% 33%;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: 'Geist Variable', sans-serif;
+  }
+}
+
+@layer utilities {
+  .chat-bg {
+    position: relative;
+    background-color: hsl(var(--background));
+  }
+
+  .chat-bg::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+    background-repeat: repeat;
+    background-attachment: local;
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .dark .chat-bg::before {
+    filter: invert(1) brightness(0.5);
+    opacity: 0.05;
+  }
+}

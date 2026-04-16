@@ -16,6 +16,7 @@ export const conversationSchema = gql`
     avatar: String
   }
 
+
   type LastMessage {
     id: ID!
     content: String
@@ -30,6 +31,7 @@ export const conversationSchema = gql`
     name: String
     isGroup: Boolean!
     participants: [Participant!]!
+    admins: [ID!]!
     lastMessage: LastMessage
     lastMessageAt: Date
     unreadCounts: JSON
@@ -46,11 +48,17 @@ export const conversationSchema = gql`
   type Query {
     getUserConversations(cursor: Date, limit: Int): ConversationConnection!
     getConversation(id: ID!): Conversation
+    getAllUsers: [Participant!]!
   }
 
   type Mutation {
     createConversation(input: CreateConversationInput!): Conversation!
     addParticipant(conversationId: ID!, userId: ID!): Conversation!
     removeParticipant(conversationId: ID!, userId: ID!): Conversation!
+    makeAdmin(conversationId: ID!, userId: ID!): Conversation!
+    removeAdmin(conversationId: ID!, userId: ID!): Conversation!
+    editConversation(conversationId: ID!, name: String!): Conversation!
+    deleteConversation(conversationId: ID!): ID!
+    markConversationRead(conversationId: ID!): Conversation!
   }
 `;

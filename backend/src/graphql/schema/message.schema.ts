@@ -4,7 +4,8 @@ export const messageSchema = gql`
   scalar Date
 
   input SendMessageInput {
-    conversationId: ID!
+    conversationId: ID
+    recipientId: ID
     content: String
     mediaUrl: String
   }
@@ -20,7 +21,7 @@ export const messageSchema = gql`
   }
 
   type Reaction {
-    userId: ID!
+    user: ID!
     emoji: String!
   }
 
@@ -46,15 +47,19 @@ export const messageSchema = gql`
   }
 
   type Query {
-    getMessages(conversationId: ID!, cursor: Date, limit: Int): MessageConnection!
+    getMessages(
+      conversationId: ID!
+      cursor: Date
+      limit: Int
+    ): MessageConnection!
   }
 
   type Mutation {
     sendMessage(input: SendMessageInput!): Message!
     editMessage(input: EditMessageInput!): Message!
     deleteMessage(messageId: ID!): Message!
-    addReaction(input: AddReactionInput!): Message!
-    removeReaction(input: AddReactionInput!): Message!
+    addReaction(messageId: ID!, emoji: String!): Message!
+    removeReaction(messageId: ID!, emoji: String!): Message!
     markMessageRead(messageId: ID!): Message!
   }
 `;

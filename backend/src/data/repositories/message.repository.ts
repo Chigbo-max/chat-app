@@ -4,7 +4,8 @@ import { Types } from "mongoose";
 export class MessageRepository {
 
   async create(data: any) {
-    return Message.create(data);
+    const message = await Message.create(data);
+    return message.populate("sender");
   }
 
   async findById(messageId: string) {
@@ -93,6 +94,19 @@ export class MessageRepository {
     userId: string,
     emoji: string
   ) {
+    // First remove any existing reaction from this user
+    await Message.findByIdAndUpdate(
+      messageId,
+      {
+        $pull: {
+          reactions: {
+            user: new Types.ObjectId(userId)
+          }
+        }
+      }
+    );
+
+    // Then add the new reaction
     return Message.findByIdAndUpdate(
       messageId,
       {
