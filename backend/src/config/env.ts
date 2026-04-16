@@ -5,6 +5,14 @@ dotenv.config();
 interface EnvConfig {
   PORT: number;
   MONGO_URI: string;
+
+  // REDIS_HOST: string;
+  // REDIS_PORT: number;
+
+  // CLOUDINARY_CLOUD_NAME: string;
+  // CLOUDINARY_API_KEY: string;
+  // CLOUDINARY_API_SECRET: string;
+
   JWT_SECRET: string;
 }
 
