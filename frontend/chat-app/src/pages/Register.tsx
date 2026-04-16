@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@apollo/client/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { REGISTER_MUTATION } from "@/graphql/queries";
 
 export default function Register() {
@@ -11,6 +11,7 @@ export default function Register() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
   interface AuthResult {
@@ -48,30 +49,74 @@ export default function Register() {
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4 p-8 border rounded-xl bg-card shadow-sm">
         <h1 className="text-2xl font-bold text-foreground">Register</h1>
 
+        {/* Enhanced Error Message */}
+        {error && (
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/100 text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <p className="text-sm font-medium">{error}</p>
+          </div>
+        )}
+
         <div>
           <label htmlFor="username" className="text-sm mb-2 block text-muted-foreground">Username</label>
-          <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Your username" required />
+          <Input 
+            id="username" 
+            value={username} 
+            onChange={(e) => setUsername(e.target.value)} 
+            placeholder="Your username" 
+            required 
+            className="bg-white text-slate-900"
+          />
         </div>
 
         <div>
           <label htmlFor="email" className="text-sm mb-2 block text-muted-foreground">Email</label>
-          <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
+          <Input 
+            id="email" 
+            type="email" 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
+            placeholder="you@example.com" 
+            required 
+            className="bg-white text-slate-900"
+          />
         </div>
 
+        {/* Password with Visibility Toggle */}
         <div>
           <label htmlFor="password" className="text-sm mb-2 block text-muted-foreground">Password</label>
-          <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+          <div className="relative">
+            <Input 
+              id="password" 
+              type={showPassword ? "text" : "password"} 
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              placeholder="••••••••" 
+              required 
+              className="bg-white text-slate-900 pr-10" 
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-900 focus:text-slate-900 transition-colors"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
-
-        {error ? <p className="text-destructive text-sm">{error}</p> : null}
 
         <Button type="submit" className="w-full" disabled={loading}>
           <UserPlus className="mr-2 h-4 w-4" />
           {loading ? "Creating account..." : "Register"}
         </Button>
 
-        <p className="text-sm text-muted-foreground">
-          Already have an account? <Link to="/login" className="text-primary">Login</Link>
+        <p className="text-sm text-muted-foreground text-center">
+          Already have an account? <Link to="/login" className="text-primary hover:underline">Login</Link>
         </p>
       </form>
     </div>
